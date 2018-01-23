@@ -10,6 +10,8 @@
 //#include <GLFW/glfw3native.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string>
+#include <fstream> 
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
@@ -25,7 +27,7 @@ static void error_callback(int error, const char* description)
   fputs(description, stderr);
 }
 
-GLuint LoadShader ( GLenum type, const char *shaderSrc )
+GLuint LoadShader(GLenum type, const char *shaderSrc )
 {
    GLuint shader;
    GLint compiled;
@@ -53,12 +55,9 @@ GLuint LoadShader ( GLenum type, const char *shaderSrc )
       
       if ( infoLen > 1 )
       {
-        // char* infoLog = malloc (sizeof(char) * infoLen );
-		 char infoLog[512];
+		 char infoLog[4096];
          glGetShaderInfoLog ( shader, infoLen, NULL, infoLog );
          printf ( "Error compiling shader:\n%s\n", infoLog );            
-         
-        // free ( infoLog );
       }
 
       glDeleteShader ( shader );
@@ -66,34 +65,37 @@ GLuint LoadShader ( GLenum type, const char *shaderSrc )
    }
 
    return shader;
-
 }
+
+GLuint LoadShaderFromFile(GLenum shaderType, std::string path)
+{
+    GLuint shaderID = 0;
+    std::string shaderString;
+    std::ifstream sourceFile( path.c_str() );
+
+    if( sourceFile )
+    {
+        shaderString.assign( ( std::istreambuf_iterator< char >( sourceFile ) ), std::istreambuf_iterator< char >() );
+        const GLchar* shaderSource = shaderString.c_str();
+
+		return LoadShader(shaderType, shaderSource);
+    }
+    else
+        printf( "Unable to open file %s\n", path.c_str() );
+
+    return shaderID;
+}
+
 
 int Init ( void )
 {
-   //UserData *userData = esContext->userData;
-   char vShaderStr[] =  
-      "attribute vec4 vPosition;    \n"
-      "void main()                  \n"
-      "{                            \n"
-      "   gl_Position = vPosition;  \n"
-      "}                            \n";
-   
-   char fShaderStr[] =  
-      "precision mediump float;\n"\
-      "void main()                                  \n"
-      "{                                            \n"
-      "  gl_FragColor = vec4 ( 1.0, 0.0, 1.0, 1.0 );\n"
-      "}                                            \n";
-
    GLuint vertexShader;
    GLuint fragmentShader;
    GLuint programObject;
    GLint linked;
 
-   // Load the vertex/fragment shaders
-   vertexShader = LoadShader ( GL_VERTEX_SHADER, vShaderStr );
-   fragmentShader = LoadShader ( GL_FRAGMENT_SHADER, fShaderStr );
+   vertexShader = LoadShaderFromFile(GL_VERTEX_SHADER, "../vertexShader1.vert" );
+   fragmentShader = LoadShaderFromFile(GL_FRAGMENT_SHADER, "../fragmentShader1.frag" );
 
    // Create the program object
    programObject = glCreateProgram ( );
@@ -101,8 +103,9 @@ int Init ( void )
    if ( programObject == 0 )
       return 0;
 
-   glAttachShader ( programObject, vertexShader );
    glAttachShader ( programObject, fragmentShader );
+   glAttachShader ( programObject, vertexShader );
+
 
    // Bind vPosition to attribute 0   
    glBindAttribLocation ( programObject, 0, "vPosition" );
@@ -191,7 +194,7 @@ int main(void)
   {
     glfwTerminate();
     printf("glfwCreateWindow Error\n");
-    exit(1);
+    exit(1); 
   }
 
   glfwMakeContextCurrent(window);
