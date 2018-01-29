@@ -2,25 +2,23 @@ precision mediump float;
 
 const float PI = 3.14159265359;
 
-const float f = 1.0; //Frequency, Be Power of 2
+const float f = 0.5; //Be Power of 2
 
-const float p = 1.625; //Highest point in y
-const float c = 6.0; //Degree of interception, 1 / k"Height"
+const float c = 1.0 / 10.0;
 
-const float a = (c + 2.0) * p / (2.0 * c);
-const float k = (c - 2.0) * p / (2.0 * c);
+const float a = 0.5 + c;
+const float k = 0.5 - c;
 
-const float offsetX = 0.0;
+const float offsetX = 1.0;
 const float h = (2.0 * PI / 3.0);
 
-const float pixelFactor = 0.025;
+const float pixelFactor = 0.01;
 
 float getRainbowEquation(float colorOffset, float x)
 {
 	float y = (a * cos((x - (h * colorOffset) + offsetX) / f)) + k;
 	
-	if(y > 1.0) return 1.0;
-	else if(y < 0.0) return 0.0;
+	if(y < 0.0) return 0.0;
 	else return y;
 }
 
