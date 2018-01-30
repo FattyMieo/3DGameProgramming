@@ -145,6 +145,15 @@ int Init ( void )
 
 void Draw(void)
 {
+	//Time
+	static float time = 0.0f;
+	time += 0.1f;
+	GLint timeLoc = glGetUniformLocation(GprogramID, "Time");
+	if (timeLoc != 1)
+	{
+		glUniform1f(timeLoc, time);
+	}
+
    GLfloat vVertices[] = {0.0f,  0.5f, 0.0f,
                           -0.5f, -0.5f, 0.0f,
                           0.5f, -0.5f,  0.0f};

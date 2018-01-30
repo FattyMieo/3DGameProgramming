@@ -9,10 +9,10 @@ const float c = 1.0 / 10.0;
 const float a = 0.5 + c;
 const float k = 0.5 - c;
 
-const float offsetX = 1.0;
+const float offsetX = 3.0;
 const float h = (2.0 * PI / 3.0);
 
-const float pixelFactor = 0.01;
+const float pixelFactor = 0.015;
 
 float getRainbowEquation(float colorOffset, float x)
 {
