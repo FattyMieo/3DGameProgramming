@@ -11,16 +11,19 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string>
-#include <fstream> 
+#include <fstream>
+
+#include "bitmap.h"
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
+#define TEXTURE_COUNT 2
+
 GLint GprogramID = -1;
+GLuint GtextureID[TEXTURE_COUNT];
 
 GLFWwindow* window;
-
-
 
 static void error_callback(int error, const char* description)
 {
@@ -87,6 +90,23 @@ GLuint LoadShaderFromFile(GLenum shaderType, std::string path)
 }
 
 
+void loadTexture(const char* path, GLuint textureID)
+{
+	CBitmap bitmap(path);
+
+	glBindTexture(GL_TEXTURE_2D, textureID);
+
+	// Repeat the texture after exceeding 1.0f
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // Apply texture wrapping along horizontal part
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT); // Apply texture wrapping along vertical part
+
+	// Bilinear filtering
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR); // Near filtering (For when texture needs to scale...)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR); // Far filtering (For when texture needs to scale...)
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap.GetWidth(), bitmap.GetHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap.GetBits());
+}
+
 int Init ( void )
 {
    GLuint vertexShader;
@@ -94,6 +114,12 @@ int Init ( void )
    GLuint programObject;
    GLint linked;
 
+   // Load Textures
+   glGenTextures(TEXTURE_COUNT, GtextureID);
+   loadTexture("../media/rocks.bmp", GtextureID[0]);
+   //loadTexture("../media/background.bmp", GtextureID[1]);
+
+   // Load Shaders
    vertexShader = LoadShaderFromFile(GL_VERTEX_SHADER, "../vertexShader1.vert" );
    fragmentShader = LoadShaderFromFile(GL_FRAGMENT_SHADER, "../fragmentShader1.frag" );
 
@@ -106,9 +132,13 @@ int Init ( void )
    glAttachShader ( programObject, fragmentShader );
    glAttachShader ( programObject, vertexShader );
 
-
-   // Bind vPosition to attribute 0   
-   glBindAttribLocation ( programObject, 0, "vPosition" );
+   // (Send from CPU to GPU)
+   // Bind vPosition to attribute 0
+   glBindAttribLocation(programObject, 0, "vPosition");
+   // Bind vColor to attribute 1   
+   glBindAttribLocation(programObject, 1, "vColor");
+   // Bind vPosition to attribute 2
+   glBindAttribLocation(programObject, 2, "vTexCoord");
 
    // Link the program
    glLinkProgram ( programObject );
@@ -145,22 +175,66 @@ int Init ( void )
 
 void Draw(void)
 {
+	//Set the sampler2D varying variable to the first texture unit (index 0)
+	glUniform1i(glGetUniformLocation(GprogramID, "sampler2d"), 0);
+
 	//Time
 	static float time = 0.0f;
-	time += 0.1f;
+	time += 0.01f;
 	GLint timeLoc = glGetUniformLocation(GprogramID, "Time");
 	if (timeLoc != 1)
 	{
 		glUniform1f(timeLoc, time);
 	}
 
-   GLfloat vVertices[] = {0.0f,  0.5f, 0.0f,
-                          -0.5f, -0.5f, 0.0f,
-                          0.5f, -0.5f,  0.0f};
-		/*				  
-      GLfloat vVertices[] = {0.0f,  1.0f, 0.0f,
-                          -1.0f, -1.0f, 0.0f,
-                          1.0f, -1.0f,  0.0f};*/
+	 //Triangle
+	/*
+	static GLfloat vVertices[] = 
+	{
+		 0.0f,  0.5f, 0.0f,
+		-0.5f, -0.5f, 0.0f,
+		 0.5f, -0.5f, 0.0f
+	};
+
+	static GLfloat vColors[] = // !! Color for each vertex
+	{
+		1.0f, 0.0f, 0.0f, 1.0f,
+		0.0f, 1.0f, 0.0f, 1.0f,
+		0.0f, 0.0f, 1.0f, 1.0f
+	};
+	*/
+
+	static GLfloat vVertices[] =
+	{
+		-0.5f, -0.5f, 0.0f,
+		 0.5f, -0.5f, 0.0f,
+		-0.5f,  0.5f, 0.0f,
+		 0.5f, -0.5f, 0.0f,
+		-0.5f,  0.5f, 0.0f,
+		 0.5f,  0.5f, 0.0f
+	};
+
+	static GLfloat vColors[] = // !! Color for each vertex
+	{
+		1.0f, 0.0f, 0.0f, 1.0f,
+		0.0f, 1.0f, 0.0f, 1.0f,
+		0.0f, 0.0f, 1.0f, 1.0f,
+		0.0f, 1.0f, 0.0f, 1.0f,
+		0.0f, 0.0f, 1.0f, 1.0f,
+		1.0f, 0.0f, 0.0f, 1.0f
+	};
+
+	static GLfloat vTexCoords[] = // !! TexCoord for each vertex
+	{
+		0.0f, 1.0f,
+		1.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 0.0f
+	};
+
+	glBindTexture(GL_TEXTURE_2D, GtextureID[0]);
 
    // Set the viewport
    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -173,10 +247,13 @@ void Draw(void)
 
    // Load the vertex data
    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
+   glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, vColors);
+   glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, vTexCoords);
    glEnableVertexAttribArray(0);
+   glEnableVertexAttribArray(1);
+   glEnableVertexAttribArray(2);
 
-   glDrawArrays(GL_TRIANGLES, 0, 3);
-
+   glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 int main(void)
