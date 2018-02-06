@@ -7,25 +7,28 @@ uniform float Time;
 
 void main()
 {
-	//vec4 resultColor;
+	vec4 texColor = texture2D(sampler2d, fTexCoord);
+	vec4 combinedColor;
+	
+	combinedColor = texColor; //Using texture color only (without vertex color) 
+	//combinedColor = fColor * texColor;
+	
+	vec4 resultColor;
 	
 	//From RGB slowly turn into whites
-	//resultColor.r = fColor.r + Time;
-	//resultColor.g = fColor.g + Time;
-	//resultColor.b = fColor.b + Time;
+	//resultColor.r = combinedColor.r + Time;
+	//resultColor.g = combinedColor.g + Time;
+	//resultColor.b = combinedColor.b + Time;
 	
-	//Interpolation
-	//resultColor.r = mod(fColor.r + Time, 1.0);
-	//resultColor.g = mod(fColor.g + Time, 1.0);
-	//resultColor.b = mod(fColor.b + Time, 1.0);
-	//resultColor.a = fColor.a;
+	//Interpolationd
+	resultColor.r = mod(0.1 * tan(combinedColor.r - Time), 1.0);
+	resultColor.g = mod(0.1 * tan(combinedColor.g - Time), 1.0);
+	resultColor.b = mod(0.1 * tan(combinedColor.b - Time), 1.0);
+	resultColor.a = combinedColor.a;
 	
 	//Animated
-	//gl_FragColor = resultColor;
+	gl_FragColor = resultColor;
 	
 	//Static RGB
 	//gl_FragColor = fColor;
-	
-	//Use Texture Color only
-	gl_FragColor = texture2D(sampler2d, fTexCoord);
 }

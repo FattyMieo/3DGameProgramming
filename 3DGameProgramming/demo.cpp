@@ -206,12 +206,12 @@ void Draw(void)
 
 	static GLfloat vVertices[] =
 	{
-		-0.5f, -0.5f, 0.0f,
-		 0.5f, -0.5f, 0.0f,
-		-0.5f,  0.5f, 0.0f,
-		 0.5f, -0.5f, 0.0f,
-		-0.5f,  0.5f, 0.0f,
-		 0.5f,  0.5f, 0.0f
+		-1.0f, -1.0f, 0.0f,
+		 1.0f, -1.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f,
+		 1.0f, -1.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f,
+		 1.0f,  1.0f, 0.0f
 	};
 
 	static GLfloat vColors[] = // !! Color for each vertex
@@ -226,12 +226,12 @@ void Draw(void)
 
 	static GLfloat vTexCoords[] = // !! TexCoord for each vertex
 	{
+		0.0f, 0.0f,
+		1.0f, 0.0f,
 		0.0f, 1.0f,
-		1.0f, 1.0f,
-		0.0f, 0.0f,
-		1.0f, 1.0f,
-		0.0f, 0.0f,
-		1.0f, 0.0f
+		1.0f, 0.0f,
+		0.0f, 1.0f,
+		1.0f, 1.0f
 	};
 
 	glBindTexture(GL_TEXTURE_2D, GtextureID[0]);
