@@ -117,6 +117,7 @@ int Init ( void )
    // Load Textures
    glGenTextures(TEXTURE_COUNT, GtextureID);
    loadTexture("../media/rocks.bmp", GtextureID[0]);
+   loadTexture("../media/rainbow-blocks.bmp", GtextureID[1]);
    //loadTexture("../media/background.bmp", GtextureID[1]);
 
    // Load Shaders
@@ -234,7 +235,7 @@ void Draw(void)
 		1.0f, 1.0f
 	};
 
-	glBindTexture(GL_TEXTURE_2D, GtextureID[0]);
+	glBindTexture(GL_TEXTURE_2D, GtextureID[1]);
 
    // Set the viewport
    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
