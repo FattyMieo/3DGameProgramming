@@ -14,21 +14,42 @@
 #include <fstream>
 
 #include "bitmap.h"
+#include <fmod.hpp>
+#include <fmod_errors.h>
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
 #define TEXTURE_COUNT 2
 
+//Must be power of 2
+#define SPECTRUM_SIZE 1024
+
 GLint GprogramID = -1;
 GLuint GtextureID[TEXTURE_COUNT];
 
 GLFWwindow* window;
 
+float m_spectrumLeft[SPECTRUM_SIZE];
+float m_spectrumRight[SPECTRUM_SIZE];
+
 static void error_callback(int error, const char* description)
 {
   fputs(description, stderr);
 }
+
+//FMOD Error Check
+void ERRCHECK(FMOD_RESULT result)
+{
+	if (result != FMOD_OK)
+	{
+		printf("FMOD error! (%d) %s\n", result, FMOD_ErrorString(result));
+	}
+}
+
+FMOD::System* m_fmodSystem;
+FMOD::Sound* m_music;
+FMOD::Channel* m_musicChannel;
 
 GLuint LoadShader(GLenum type, const char *shaderSrc )
 {
@@ -107,6 +128,47 @@ void loadTexture(const char* path, GLuint textureID)
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmap.GetWidth(), bitmap.GetHeight(), 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmap.GetBits());
 }
 
+void initFmod()
+{
+	FMOD_RESULT result;
+	unsigned int version;
+
+	result = FMOD::System_Create(&m_fmodSystem);
+	ERRCHECK(result);
+
+	result = m_fmodSystem->getVersion(&version);
+	ERRCHECK(result);
+
+	if (version < FMOD_VERSION)
+	{
+		printf("FMOD Error! You are using an old version of FMOD.", version, FMOD_VERSION);
+	}
+
+	//Initialise fmod system
+	result = m_fmodSystem->init(32, FMOD_INIT_NORMAL, 0);
+	ERRCHECK(result);
+
+	//Load and Set up Music
+	result = m_fmodSystem->createStream("../media/entrance.mp3", FMOD_SOFTWARE, 0, &m_music);
+	ERRCHECK(result);
+
+	//Play the loaded mp3 music
+	result = m_fmodSystem->playSound(FMOD_CHANNEL_FREE, m_music, false, &m_musicChannel);
+	ERRCHECK(result);
+}
+
+void updateFmod()
+{
+	m_fmodSystem->update();
+
+	//Get spectrum for left and right stereo channels
+	m_musicChannel->getSpectrum(m_spectrumLeft, SPECTRUM_SIZE, 0, FMOD_DSP_FFT_WINDOW_RECT);
+	m_musicChannel->getSpectrum(m_spectrumRight, SPECTRUM_SIZE, 0, FMOD_DSP_FFT_WINDOW_RECT);
+
+	//Print the first audio spectrum for both left and right channels
+	std::cout << m_spectrumLeft[0] << ", " << m_spectrumRight[0] << std::endl;
+}
+
 int Init ( void )
 {
    GLuint vertexShader;
@@ -119,6 +181,9 @@ int Init ( void )
    loadTexture("../media/rocks.bmp", GtextureID[0]);
    loadTexture("../media/rainbow-blocks.bmp", GtextureID[1]);
    //loadTexture("../media/background.bmp", GtextureID[1]);
+
+   // Initialize FMOD
+   initFmod();
 
    // Load Shaders
    vertexShader = LoadShaderFromFile(GL_VERTEX_SHADER, "../vertexShader1.vert" );
@@ -186,6 +251,14 @@ void Draw(void)
 	if (timeLoc != 1)
 	{
 		glUniform1f(timeLoc, time);
+	}
+
+	//Fmod Update
+	updateFmod();
+	GLint spectrumLoc = glGetUniformLocation(GprogramID, "Spectrum");
+	if (spectrumLoc != 1)
+	{
+		glUniform1f(spectrumLoc, m_spectrumLeft[0] + m_spectrumRight[0]);
 	}
 
 	 //Triangle
