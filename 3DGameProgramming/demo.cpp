@@ -33,6 +33,9 @@ GLFWwindow* window;
 float m_spectrumLeft[SPECTRUM_SIZE];
 float m_spectrumRight[SPECTRUM_SIZE];
 
+float m_highestSpectrumLeft[SPECTRUM_SIZE];
+float m_highestSpectrumRight[SPECTRUM_SIZE];
+
 static void error_callback(int error, const char* description)
 {
   fputs(description, stderr);
@@ -161,6 +164,14 @@ void updateFmod()
 {
 	m_fmodSystem->update();
 
+	for (int i = 0; i < SPECTRUM_SIZE; i++)
+	{
+		if(m_spectrumLeft[i] > m_highestSpectrumLeft[i])
+			m_highestSpectrumLeft[i] = m_spectrumLeft[i];
+		if (m_spectrumRight[i] > m_highestSpectrumRight[i])
+			m_highestSpectrumRight[i] = m_spectrumRight[i];
+	}
+
 	//Get spectrum for left and right stereo channels
 	m_musicChannel->getSpectrum(m_spectrumLeft, SPECTRUM_SIZE, 0, FMOD_DSP_FFT_WINDOW_RECT);
 	m_musicChannel->getSpectrum(m_spectrumRight, SPECTRUM_SIZE, 0, FMOD_DSP_FFT_WINDOW_RECT);
@@ -248,17 +259,24 @@ void Draw(void)
 	static float time = 0.0f;
 	time += 0.01f;
 	GLint timeLoc = glGetUniformLocation(GprogramID, "Time");
-	if (timeLoc != 1)
+	if (timeLoc != -1)
 	{
 		glUniform1f(timeLoc, time);
 	}
 
 	//Fmod Update
 	updateFmod();
+
+	//Reduce by delta time
+	m_highestSpectrumLeft[0] -= 0.005f;
+	m_highestSpectrumRight[0] -= 0.005f;
+	if (m_highestSpectrumLeft[0] < 0.0f) m_highestSpectrumLeft[0] = 0.0f;
+	if (m_highestSpectrumRight[0] < 0.0f) m_highestSpectrumRight[0] = 0.0f;
+
 	GLint spectrumLoc = glGetUniformLocation(GprogramID, "Spectrum");
-	if (spectrumLoc != 1)
+	if (spectrumLoc != -1)
 	{
-		glUniform1f(spectrumLoc, m_spectrumLeft[0] + m_spectrumRight[0]);
+		glUniform1f(spectrumLoc, m_highestSpectrumLeft[0] + m_highestSpectrumRight[0]);
 	}
 
 	 //Triangle
