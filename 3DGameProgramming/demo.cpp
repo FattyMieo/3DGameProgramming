@@ -24,6 +24,7 @@
 
 //Must be power of 2
 #define SPECTRUM_SIZE 1024
+#define SPECTRUM_EXP_2 10
 
 GLint GprogramID = -1;
 GLuint GtextureID[TEXTURE_COUNT];
@@ -35,6 +36,9 @@ float m_spectrumRight[SPECTRUM_SIZE];
 
 float m_highestSpectrumLeft[SPECTRUM_SIZE];
 float m_highestSpectrumRight[SPECTRUM_SIZE];
+
+float m_highestSpectrum[SPECTRUM_EXP_2];
+float m_spectrum[SPECTRUM_EXP_2];
 
 static void error_callback(int error, const char* description)
 {
@@ -164,20 +168,48 @@ void updateFmod()
 {
 	m_fmodSystem->update();
 
+	//Get spectrum for left and right stereo channels
+	m_musicChannel->getSpectrum(m_spectrumLeft, SPECTRUM_SIZE, 0, FMOD_DSP_FFT_WINDOW_RECT);
+	m_musicChannel->getSpectrum(m_spectrumRight, SPECTRUM_SIZE, 1, FMOD_DSP_FFT_WINDOW_RECT);
+
+	//Legacy system
+	/*
 	for (int i = 0; i < SPECTRUM_SIZE; i++)
 	{
-		if(m_spectrumLeft[i] > m_highestSpectrumLeft[i])
+		if (m_spectrumLeft[i] > m_highestSpectrumLeft[i])
 			m_highestSpectrumLeft[i] = m_spectrumLeft[i];
 		if (m_spectrumRight[i] > m_highestSpectrumRight[i])
 			m_highestSpectrumRight[i] = m_spectrumRight[i];
+
+		//Reduce by delta time
+		m_highestSpectrumLeft[i] -= 0.005f;
+		m_highestSpectrumRight[i] -= 0.005f;
+		if (m_highestSpectrumLeft[i] < 0.0f) m_highestSpectrumLeft[i] = 0.0f;
+		if (m_highestSpectrumRight[i] < 0.0f) m_highestSpectrumRight[i] = 0.0f;
 	}
+	*/
 
-	//Get spectrum for left and right stereo channels
-	m_musicChannel->getSpectrum(m_spectrumLeft, SPECTRUM_SIZE, 0, FMOD_DSP_FFT_WINDOW_RECT);
-	m_musicChannel->getSpectrum(m_spectrumRight, SPECTRUM_SIZE, 0, FMOD_DSP_FFT_WINDOW_RECT);
+	int exp = 0;
+	for (int i = 1; i < SPECTRUM_SIZE; i *= 2)
+	{
+		m_spectrum[exp] = 0.0f;
+		for (int j = i - 1; j < (i * 2); j++)
+		{
+			m_spectrum[exp] += (m_spectrumLeft[j] + m_spectrumRight[j]) / 2.0f;
+		}
 
-	//Print the first audio spectrum for both left and right channels
-	std::cout << m_spectrumLeft[0] << ", " << m_spectrumRight[0] << std::endl;
+		if(exp > 0)
+			m_spectrum[exp] = m_spectrum[exp - 1];
+
+		if (m_spectrum[exp] > m_highestSpectrum[exp])
+			m_highestSpectrum[exp] = m_spectrum[exp];
+
+		//Reduce by delta time
+		m_highestSpectrum[exp] -= 0.05f * m_highestSpectrum[exp];
+		if (m_highestSpectrum[exp] < 0.0f) m_highestSpectrum[exp] = 0.0f;
+
+		exp++;
+	}
 }
 
 int Init ( void )
@@ -267,16 +299,23 @@ void Draw(void)
 	//Fmod Update
 	updateFmod();
 
-	//Reduce by delta time
-	m_highestSpectrumLeft[0] -= 0.005f;
-	m_highestSpectrumRight[0] -= 0.005f;
-	if (m_highestSpectrumLeft[0] < 0.0f) m_highestSpectrumLeft[0] = 0.0f;
-	if (m_highestSpectrumRight[0] < 0.0f) m_highestSpectrumRight[0] = 0.0f;
+	static int mainSpectrum = 2;
+
+	//Print the first audio spectrum for both left and right channels
+	if(m_highestSpectrum[mainSpectrum] - m_spectrum[mainSpectrum] > 0.01f)
+		std::cout << mainSpectrum << "@" << m_spectrum[mainSpectrum] << std::endl;
 
 	GLint spectrumLoc = glGetUniformLocation(GprogramID, "Spectrum");
 	if (spectrumLoc != -1)
 	{
-		glUniform1f(spectrumLoc, m_highestSpectrumLeft[0] + m_highestSpectrumRight[0]);
+		//glUniform1f(spectrumLoc, m_highestSpectrumLeft[2] + m_highestSpectrumRight[2]);
+		glUniform1f(spectrumLoc, m_highestSpectrum[mainSpectrum]);
+	}
+	
+	GLint spectrumArrayLoc = glGetUniformLocation(GprogramID, "SpectrumArray");
+	if (spectrumArrayLoc != -1)
+	{
+		glUniform1fv(spectrumArrayLoc, SPECTRUM_EXP_2, m_highestSpectrum);
 	}
 
 	 //Triangle
@@ -364,7 +403,7 @@ int main(void)
   // Create and open a window
   window = glfwCreateWindow(WINDOW_WIDTH,
                             WINDOW_HEIGHT,
-                            "Hello World",
+                            "Entrance",
                             NULL,
                             NULL);
 

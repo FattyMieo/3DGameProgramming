@@ -6,6 +6,7 @@ varying vec2 fTexCoord;
 uniform sampler2D sampler2d;
 uniform float Time;
 uniform float Spectrum;
+uniform float SpectrumArray[10];
 
 const vec2 resolution = vec2(800.0, 800.0);
 
@@ -84,6 +85,27 @@ float fbm(in vec2 _st)
     return value;
 }
 
+//Blob
+float makePoint(float x, float y, float fx, float fy, float sx, float sy, float t)
+{
+   float xx = x + sin(t*fx) * sx;
+   float yy = y + cos(t*fy) * sy;
+   return 1.0 / sqrt(xx * xx + yy *yy);
+}
+
+vec3 gu(vec4 a,vec4 b,float f)
+{
+  return mix(a.xyz,b.xyz,(f-a.w)*(1.0/(b.w-a.w)));
+}
+
+vec3 grad(float f)
+{
+	vec4 c01=vec4(0.0,0.0,0.0,0.00);
+	vec4 c02=vec4(1.0,1.0,0.5,0.60);
+	vec4 c03=vec4(1.0,1.0,1.0,1.00);
+	return (f<c02.w)?gu(c01,c02,f):gu(c02,c03,f);
+}
+
 void main()
 {
 	vec2 st = gl_FragCoord.xy / resolution.xy * 10.0;
@@ -97,11 +119,11 @@ void main()
     fractMix2 += fbm(st2);
 	
 	vec2 q = vec2(0.0);
-    q.x = fbm( st + 0.00 * Time);
+    q.x = fbm( st + 0.05 * Time);
     q.y = fbm( st + vec2(1.0));
 	vec2 r = vec2(0.0);;
-    r.x = fbm( st + 1.0 * q + vec2(1.7,9.2)+ 0.15 * Time );
-    r.y = fbm( st + 1.0 * q + vec2(8.3,2.8)+ 0.126 * Time);
+    r.x = fbm( st + 1.0 * q + vec2(1.7,9.2)+ 0.5 * Time );
+    r.y = fbm( st + 1.0 * q + vec2(8.3,2.8)+ 0.26 * Time);
 	
 	float f = fbm(st + r);
 	
@@ -132,13 +154,36 @@ void main()
 	vec4 texColor = texture2D(sampler2d, fTexCoord);
 	vec4 resultColor;
 	vec4 resultColor2;
-	resultColor.a = 1.0;
+	vec4 resultColor3;
+	vec4 resultColor4;
 	
-	float equation = amp * Spectrum * 2.5 * sin((gl_FragCoord.x / freq) - (offsetX + Time * speed)) + offsetY;
+	float sineEq = 0.0;
+	float specAvg = 0.0;
 	
-	//float dSize = (maxSize - minSize) * abs(sin(Time * speed)) + minSize;
-	float dSize = (maxSize - minSize) * sin(Spectrum * 10.0) + minSize;
-	float hEq = pow((gl_FragCoord.x - offsetX) / dSize, 2.0) + pow(((gl_FragCoord.y - offsetY) / dSize) - sqrt(abs((gl_FragCoord.x - offsetX) / dSize)), 2.0);
+	for(int i = 0; i < 10; i++)
+	{
+		sineEq += amp / SpectrumArray[i] / 100.0 * sin((gl_FragCoord.x / freq * float(i) * SpectrumArray[i] * 2.0) - (offsetX * SpectrumArray[i] * 10.0 + Time * speed * float(i))) + SpectrumArray[i] * float(i);
+		specAvg += SpectrumArray[i];
+	}
+	
+	sineEq += offsetY;
+	
+	if(gl_FragCoord.y >= sineEq - width * specAvg && gl_FragCoord.y <= sineEq + width * specAvg) //Sine Wave
+	{
+		resultColor3.r = (abs((invLerp(sineEq - width * specAvg, sineEq + width * specAvg, gl_FragCoord.y) - 0.5) * 2.0)) * specAvg;
+		resultColor3.g = (abs((invLerp(sineEq - width * specAvg, sineEq + width * specAvg, gl_FragCoord.y) - 0.5) * 2.0)) * specAvg;
+		resultColor3.b = (abs((invLerp(sineEq - width * specAvg, sineEq + width * specAvg, gl_FragCoord.y) - 0.5) * 2.0)) * specAvg;
+	}
+	else
+	{
+		resultColor3.r = 0.0;
+		resultColor3.g = 0.0;
+		resultColor3.b = 0.0;
+	}
+	
+	if(specAvg > 1.5) resultColor3 = mix(resultColor, -resultColor3, specAvg - 1.5);
+	
+	float equation = amp * Spectrum * 5.0 * sin((gl_FragCoord.x / freq) - (offsetX + Time * speed)) + offsetY;
 	
 	if(gl_FragCoord.y >= equation - width * Spectrum * 5.0 && gl_FragCoord.y <= equation + width * Spectrum * 5.0) //Sine Wave
 	{
@@ -152,6 +197,10 @@ void main()
 		resultColor2.g = 0.0;
 		resultColor2.b = 0.0;
 	}
+	
+	//float dSize = (maxSize - minSize) * abs(sin(Time * speed)) + minSize;
+	float dSize = (maxSize - minSize) * sin(Spectrum * 10.0) + minSize;
+	float hEq = pow((gl_FragCoord.x - offsetX) / dSize, 2.0) + pow(((gl_FragCoord.y - offsetY) / dSize) - sqrt(abs((gl_FragCoord.x - offsetX) / dSize)), 2.0);
 	
 	if(hEq <= curvature && hEq >= curvature / 2.0) //Heart Equation
 	{
@@ -180,21 +229,44 @@ void main()
 	gradientColor.b = 0.5 * sin(gl_FragCoord.x / 125.0 + 4.0) + 0.5;
 	gradientColor.a = 1.0;
 	*/
-		
-	gl_FragColor = texColor + resultColor + resultColor2 + fractColor;
-}
+	
+	
+   vec2 p = (gl_FragCoord.xy/resolution.x) * 2.0 - vec2(1.0, resolution.y/resolution.x);
 
-/*
-float amplitude = 1.;
-float frequency = 1.;
-float s = 0.672 + 1.5;
-float s1 = s * 1.656;
-float s2 = s * -1.085;
-y = sin(x * frequency)*s;
-float t = 0.01*(-u_time*130.0);
-y += sin(x*frequency*2.1*s + t*s2)*4.5*(s-1.0)*(s-1.5);
-y += sin(x*frequency*1.72*s1 + t*1.121*s2)*4.0*(s-1.0)*(s-1.5);
-y += sin(x*frequency*2.221*s1 + t*0.437)*5.0*(s-1.0)*(s-1.5);
-y += sin(x*frequency*3.832+ t*4.269*s2)*3.572*(s-1.0)*(s-1.5);
-y *= amplitude*0.06;
-*/
+   p *= 2.0;
+   
+	float a =  makePoint(p.x,p.y,3.3*2.0,2.9*2.0,0.3*2.0,0.3*2.0, Time)*(SpectrumArray[0]+0.01);
+		  a += makePoint(p.x,p.y,1.9*2.0,2.0*2.0,0.4*2.0,0.4*2.0, Time)*(SpectrumArray[1]+0.02);
+		  a += makePoint(p.x,p.y,0.8*2.0,0.7*2.0,0.4*2.0,0.5*2.0, Time)*(SpectrumArray[2]+0.03);
+		  a += makePoint(p.x,p.y,2.3*2.0,0.1*2.0,0.6*2.0,0.3*2.0, Time)*(SpectrumArray[7]+0.04);
+		  a += makePoint(p.x,p.y,0.8*2.0,1.7*2.0,0.5*2.0,0.4*2.0, Time)*(SpectrumArray[4]+0.03);
+		  a += makePoint(p.x,p.y,0.3*2.0,1.0*2.0,0.4*2.0,0.4*2.0, Time)*(SpectrumArray[3]+0.03);
+		  a += makePoint(p.x,p.y,1.4*2.0,1.7*2.0,0.4*2.0,0.5*2.0, Time)*(SpectrumArray[7]+0.04);
+		  a += makePoint(p.x,p.y,1.3*2.0,2.1*2.0,0.6*2.0,0.3*2.0, Time)*(SpectrumArray[4]+0.02);
+		  a += makePoint(p.x,p.y,1.8*2.0,1.7*2.0,0.5*2.0,0.4*2.0, Time)*(SpectrumArray[9]+0.05);
+		  a += makePoint(p.x,p.y,1.2*2.0,1.9*2.0,0.3*2.0,0.3*2.0, Time)*(SpectrumArray[7]+0.04);
+		  a += makePoint(p.x,p.y,0.7*2.0,2.7*2.0,0.4*2.0,0.4*2.0, Time)*(SpectrumArray[6]+0.04);
+		  a += makePoint(p.x,p.y,1.4*2.0,0.6*2.0,0.4*2.0,0.5*2.0, Time)*(SpectrumArray[4]+0.03);
+		  a += makePoint(p.x,p.y,2.6*2.0,0.4*2.0,0.6*2.0,0.3*2.0, Time)*(SpectrumArray[5]+0.03);
+		  a += makePoint(p.x,p.y,0.7*2.0,1.4*2.0,0.5*2.0,0.4*2.0, Time)*(SpectrumArray[6]+0.04);
+		  a += makePoint(p.x,p.y,0.7*2.0,1.7*2.0,0.4*2.0,0.4*2.0, Time)*(SpectrumArray[8]+0.05);
+		  a += makePoint(p.x,p.y,0.8*2.0,0.5*2.0,0.4*2.0,0.5*2.0, Time)*(SpectrumArray[1]+0.02);
+		  a += makePoint(p.x,p.y,1.4*2.0,0.9*2.0,0.6*2.0,0.3*2.0, Time)*(SpectrumArray[4]+0.03);
+		  a += makePoint(p.x,p.y,0.7*2.0,1.3*2.0,0.5*2.0,0.4*2.0, Time)*(SpectrumArray[5]+0.03);
+		  a += makePoint(p.x,p.y,3.7*2.0,0.3*2.0,0.3*2.0,0.3*2.0, Time)*(SpectrumArray[6]+0.03);
+		  a += makePoint(p.x,p.y,1.9*2.0,1.3*2.0,0.4*2.0,0.4*2.0, Time)*(SpectrumArray[4]+0.03);
+		  a += makePoint(p.x,p.y,0.8*2.0,0.9*2.0,0.4*2.0,0.5*2.0, Time)*(SpectrumArray[0]+0.01);
+		  a += makePoint(p.x,p.y,1.2*2.0,1.7*2.0,0.6*2.0,0.3*2.0, Time)*(SpectrumArray[5]+0.03);
+		  a += makePoint(p.x,p.y,0.3*2.0,0.6*2.0,0.5*2.0,0.4*2.0, Time)*(SpectrumArray[1]+0.02);
+		  a += makePoint(p.x,p.y,0.3*2.0,0.3*2.0,0.4*2.0,0.4*2.0, Time)*(SpectrumArray[8]+0.04);
+		  a += makePoint(p.x,p.y,1.4*2.0,0.8*2.0,0.4*2.0,0.5*2.0, Time)*(SpectrumArray[3]+0.02);
+		  a += makePoint(p.x,p.y,0.2*2.0,0.6*2.0,0.6*2.0,0.3*2.0, Time)*(SpectrumArray[2]+0.02);
+		  a += makePoint(p.x,p.y,1.3*2.0,0.5*2.0,0.5*2.0,0.4*2.0, Time)*(SpectrumArray[0]+0.01);
+		  a *= 10.0;
+	
+	vec3 a1 = grad(a / 128.0);
+	resultColor4 = vec4(a1.x,a1.y,a1.z,1.0) * specAvg;
+	if(specAvg > 1.5) resultColor4 = mix(resultColor4, -resultColor4 / 2.0, specAvg - 1.5) / specAvg;
+	
+	gl_FragColor = texColor + resultColor + resultColor2 + fractColor + resultColor3 + resultColor4;
+}
