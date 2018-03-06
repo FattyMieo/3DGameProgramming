@@ -6,7 +6,7 @@ varying vec2 fTexCoord;
 uniform sampler2D sampler2d;
 uniform float Time;
 
-const vec2 resolution = vec2(800.0, 800.0);
+const vec2 resolution = vec2(800.0, 600.0);
 
 //Linearly interpolate between two values
 float lerp(float v0, float v1, float t)
@@ -25,7 +25,25 @@ void main()
 	
 	float avgColor = (texColor.x + texColor.y + texColor.z) / 3.0;
 	
-	vec4 resultColor = vec4(avgColor, avgColor, avgColor, texColor.w);
+	float halfWidth = resolution.x / 2.0;
+	float halfHeight = resolution.y / 2.0;
+	
+	float maxRadiusSqr = ((halfWidth * halfWidth) + (halfHeight * halfHeight));
+	float radiusSqr =
+	(gl_FragCoord.x - halfWidth) * (gl_FragCoord.x - halfWidth) +
+	(gl_FragCoord.y - halfHeight) * (gl_FragCoord.y - halfHeight);
+	
+	float radiusScale = abs(sin(Time) * sin(Time) * sin(Time));
+	
+	vec4 resultColor = texColor;
+	if(radiusSqr <= maxRadiusSqr * radiusScale)
+	{
+		resultColor = mix(texColor, vec4(avgColor, avgColor, avgColor, texColor.w), radiusSqr / (maxRadiusSqr * radiusScale)); //Smoother Edge
+	}
+	else
+	{
+		resultColor = vec4(avgColor, avgColor, avgColor, texColor.w);
+	}
 	
 	gl_FragColor = resultColor;
 }

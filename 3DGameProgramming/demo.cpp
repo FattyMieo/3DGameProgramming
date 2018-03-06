@@ -365,7 +365,7 @@ void Draw(void)
 		1.0f, 1.0f
 	};
 
-	glBindTexture(GL_TEXTURE_2D, GtextureID[2]);
+	glBindTexture(GL_TEXTURE_2D, GtextureID[1]);
 
    // Set the viewport
    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
