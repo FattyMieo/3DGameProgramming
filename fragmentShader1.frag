@@ -22,28 +22,32 @@ float invLerp(float v0, float v1, float v)
 void main()
 {
 	vec4 texColor = texture2D(sampler2d, fTexCoord);
+	vec4 resultColor = texColor;
 	
 	float avgColor = (texColor.x + texColor.y + texColor.z) / 3.0;
 	
-	float halfWidth = resolution.x / 2.0;
-	float halfHeight = resolution.y / 2.0;
+	vec4 color0 = vec4(0.2, 0.2, 1.0, texColor.w);
+	vec4 color1 = vec4(1.0, 0.2, 0.2, texColor.w);
+	vec4 color2 = vec4(0.5, 0.5, 0.5, texColor.w);
+	vec4 color3 = vec4(0.8, 0.8, 0.5, texColor.w);
+	vec4 color4 = vec4(1.0, 1.0, 1.0, texColor.w);
 	
-	float maxRadiusSqr = ((halfWidth * halfWidth) + (halfHeight * halfHeight));
-	float radiusSqr =
-	(gl_FragCoord.x - halfWidth) * (gl_FragCoord.x - halfWidth) +
-	(gl_FragCoord.y - halfHeight) * (gl_FragCoord.y - halfHeight);
+	resultColor = ;
 	
-	float radiusScale = abs(sin(Time) * sin(Time) * sin(Time));
-	
-	vec4 resultColor = texColor;
-	if(radiusSqr <= maxRadiusSqr * radiusScale)
-	{
-		resultColor = mix(texColor, vec4(avgColor, avgColor, avgColor, texColor.w), radiusSqr / (maxRadiusSqr * radiusScale)); //Smoother Edge
-	}
+	if(avgColor < 0.2)
+		resultColor = ;
+	else if(avgColor < 0.4)
+		resultColor = ;
+	else if(avgColor < 0.6)
+		resultColor = ;
+	else if(avgColor < 0.8)
+		resultColor = ;
+	else if(avgColor < 0.8)
+		resultColor = ;
 	else
-	{
-		resultColor = vec4(avgColor, avgColor, avgColor, texColor.w);
-	}
+		resultColor = ;
+	
+	//resultColor = vec4(avgColor, avgColor, avgColor, texColor.w);
 	
 	gl_FragColor = resultColor;
 }

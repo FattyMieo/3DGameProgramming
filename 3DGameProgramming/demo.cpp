@@ -224,6 +224,7 @@ int Init ( void )
    loadTexture("../media/rocks.bmp", GtextureID[0]);
    loadTexture("../media/rainbow-blocks.bmp", GtextureID[1]);
    loadTexture("../media/rgb.bmp", GtextureID[2]);
+   loadTexture("../media/barack-obama.bmp", GtextureID[3]);
 
    // Initialize FMOD
    //initFmod();
@@ -365,7 +366,7 @@ void Draw(void)
 		1.0f, 1.0f
 	};
 
-	glBindTexture(GL_TEXTURE_2D, GtextureID[1]);
+	glBindTexture(GL_TEXTURE_2D, GtextureID[3]);
 
    // Set the viewport
    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
