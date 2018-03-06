@@ -223,10 +223,10 @@ int Init ( void )
    glGenTextures(TEXTURE_COUNT, GtextureID);
    loadTexture("../media/rocks.bmp", GtextureID[0]);
    loadTexture("../media/rainbow-blocks.bmp", GtextureID[1]);
-   //loadTexture("../media/background.bmp", GtextureID[1]);
+   loadTexture("../media/rgb.bmp", GtextureID[2]);
 
    // Initialize FMOD
-   initFmod();
+   //initFmod();
 
    // Load Shaders
    vertexShader = LoadShaderFromFile(GL_VERTEX_SHADER, "../vertexShader1.vert" );
@@ -297,8 +297,8 @@ void Draw(void)
 	}
 
 	//Fmod Update
-	updateFmod();
-
+	//updateFmod();
+	/*
 	static int mainSpectrum = 2;
 
 	//Print the first audio spectrum for both left and right channels
@@ -317,7 +317,7 @@ void Draw(void)
 	{
 		glUniform1fv(spectrumArrayLoc, SPECTRUM_EXP_2, m_highestSpectrum);
 	}
-
+	*/
 	 //Triangle
 	/*
 	static GLfloat vVertices[] = 
@@ -365,7 +365,7 @@ void Draw(void)
 		1.0f, 1.0f
 	};
 
-	glBindTexture(GL_TEXTURE_2D, GtextureID[1]);
+	glBindTexture(GL_TEXTURE_2D, GtextureID[2]);
 
    // Set the viewport
    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -403,7 +403,7 @@ int main(void)
   // Create and open a window
   window = glfwCreateWindow(WINDOW_WIDTH,
                             WINDOW_HEIGHT,
-                            "Entrance",
+                            "Shader Demo",
                             NULL,
                             NULL);
 
