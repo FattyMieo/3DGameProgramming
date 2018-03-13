@@ -28,26 +28,25 @@ void main()
 	
 	vec4 color0 = vec4(0.2, 0.2, 1.0, texColor.w);
 	vec4 color1 = vec4(1.0, 0.2, 0.2, texColor.w);
-	vec4 color2 = vec4(0.5, 0.5, 0.5, texColor.w);
-	vec4 color3 = vec4(0.8, 0.8, 0.5, texColor.w);
+	vec4 color2 = vec4(0.9, 0.8, 0.6, texColor.w);
+	vec4 color3	= vec4(0.8, 0.8, 0.9, texColor.w);
 	vec4 color4 = vec4(1.0, 1.0, 1.0, texColor.w);
 	
-	resultColor = ;
+	resultColor = vec4(avgColor, avgColor, avgColor, texColor.w);
 	
-	if(avgColor < 0.2)
-		resultColor = ;
-	else if(avgColor < 0.4)
-		resultColor = ;
-	else if(avgColor < 0.6)
-		resultColor = ;
-	else if(avgColor < 0.8)
-		resultColor = ;
-	else if(avgColor < 0.8)
-		resultColor = ;
+	if(avgColor < 0.28)
+		resultColor = color0;
+	else if(avgColor < 0.42)
+		resultColor = color1;
+	else if(avgColor < 0.65)
+		resultColor = color2;
+	else if(avgColor < 0.845)
+		resultColor = color3;
 	else
-		resultColor = ;
+		resultColor = color4;
 	
-	//resultColor = vec4(avgColor, avgColor, avgColor, texColor.w);
+	//resultColor = resultColor * resultColor;
+	//resultColor *= texColor;
 	
 	gl_FragColor = resultColor;
 }
