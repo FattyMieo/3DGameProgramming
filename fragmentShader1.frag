@@ -8,6 +8,9 @@ uniform float Time;
 
 const vec2 resolution = vec2(800.0, 600.0);
 
+//Box Blur
+const int kernelSize = 6;
+
 //Linearly interpolate between two values
 float lerp(float v0, float v1, float t)
 {
@@ -22,36 +25,47 @@ float invLerp(float v0, float v1, float v)
 void main()
 {
 	vec4 texColor = texture2D(sampler2d, fTexCoord);
-	vec4 resultColor = texColor;
+	//vec4 resultColor = texColor;
 	
-	float avgColor = (texColor.x + texColor.y + texColor.z) / 3.0;
+	//resultColor = vec4(fTexCoord.x, fTexCoord.y, 0.0, 1.0);
 	
-	float power = 64.0;
-	float div = 256.0 / power;
+	vec2 uvPerKernel = 1.0 / resolution;
 	
-	resultColor = floor(resultColor * div) / div;
-	avgColor = (resultColor.x + resultColor.y + resultColor.z) / 3.0;
-	resultColor = vec4(avgColor, avgColor, avgColor, texColor.w) * 2.0;
+	vec4 origColor = vec4(0.0);
+	int total = 0;
+	float halfKernelSize = float(kernelSize) / 2.0;
 	
-	vec4 color0 = vec4(0.2, 0.3, 1.0, texColor.w);
-	vec4 color1 = vec4(1.0, 0.2, 0.2, texColor.w);
-	vec4 color2 = vec4(0.9, 0.8, 0.6, texColor.w);
-	vec4 color3	= vec4(0.8, 0.8, 0.9, texColor.w);
-	vec4 color4 = vec4(1.0, 1.0, 1.0, texColor.w);
+/*	float minX = fTexCoord.x - (halfKernelSize * uvPerKernel.x);
+	if(minX < 0.0) minX = 0.0;
+	float maxX = fTexCoord.x + (halfKernelSize * uvPerKernel.x);
+	if(maxX > 1.0) maxX = 1.0;
+	float minY = fTexCoord.y - (halfKernelSize * uvPerKernel.y);
+	if(minY < 0.0) minY = 0.0;
+	float maxY = fTexCoord.y + (halfKernelSize * uvPerKernel.y);
+	if(maxY > 1.0) maxY = 1.0;
+*/	
+	float minX = fTexCoord.x - uvPerKernel.x;
+	if(minX < 0.0) minX = 0.0;
+	float maxX = fTexCoord.x + uvPerKernel.x;
+	if(maxX > 1.0) maxX = 1.0;
+	float minY = fTexCoord.y - uvPerKernel.y;
+	if(minY < 0.0) minY = 0.0;
+	float maxY = fTexCoord.y + uvPerKernel.y;
+	if(maxY > 1.0) maxY = 1.0;
 	
-	if(avgColor < 0.1)
-		resultColor = color0;
-	else if(avgColor < 0.3)
-		resultColor = color1;
-	else if(avgColor < 0.4)
-		resultColor = color2;
-	else if(avgColor < 0.5)
-		resultColor = color3;
-	else
-		resultColor = color4;
+	//Loop very slow
+	for(float i = minY; i <= maxY; i += uvPerKernel.y)
+	{
+		for(float j = minX; j <= maxX; j += uvPerKernel.x)
+		{
+			//vec2 a = vec2(0.0, 0.0);
+			//origColor += texture2D(sampler2d, a);
+			//origColor += texture2D(sampler2d, vec2(j, i));
+			total++;
+		}
+	}
 	
-	resultColor *= texColor;
-	resultColor *= 2.0;
+	origColor /= float(total);
 	
-	gl_FragColor = resultColor;
+	gl_FragColor = texColor;
 }
