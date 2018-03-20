@@ -25,47 +25,23 @@ float invLerp(float v0, float v1, float v)
 void main()
 {
 	vec4 texColor = texture2D(sampler2d, fTexCoord);
-	//vec4 resultColor = texColor;
-	
-	//resultColor = vec4(fTexCoord.x, fTexCoord.y, 0.0, 1.0);
-	
 	vec2 uvPerKernel = 1.0 / resolution;
 	
-	vec4 origColor = vec4(0.0);
-	int total = 0;
-	float halfKernelSize = float(kernelSize) / 2.0;
+	vec4 resultColor = vec4(0.0);
 	
-/*	float minX = fTexCoord.x - (halfKernelSize * uvPerKernel.x);
-	if(minX < 0.0) minX = 0.0;
-	float maxX = fTexCoord.x + (halfKernelSize * uvPerKernel.x);
-	if(maxX > 1.0) maxX = 1.0;
-	float minY = fTexCoord.y - (halfKernelSize * uvPerKernel.y);
-	if(minY < 0.0) minY = 0.0;
-	float maxY = fTexCoord.y + (halfKernelSize * uvPerKernel.y);
-	if(maxY > 1.0) maxY = 1.0;
-*/	
-	float minX = fTexCoord.x - uvPerKernel.x;
-	if(minX < 0.0) minX = 0.0;
-	float maxX = fTexCoord.x + uvPerKernel.x;
-	if(maxX > 1.0) maxX = 1.0;
-	float minY = fTexCoord.y - uvPerKernel.y;
-	if(minY < 0.0) minY = 0.0;
-	float maxY = fTexCoord.y + uvPerKernel.y;
-	if(maxY > 1.0) maxY = 1.0;
-	
-	//Loop very slow
-	for(float i = minY; i <= maxY; i += uvPerKernel.y)
+	for(int i = -kernelSize; i <= kernelSize; i++)
 	{
-		for(float j = minX; j <= maxX; j += uvPerKernel.x)
+		for(int j = -kernelSize; j <= kernelSize; j++)
 		{
-			//vec2 a = vec2(0.0, 0.0);
-			//origColor += texture2D(sampler2d, a);
-			//origColor += texture2D(sampler2d, vec2(j, i));
-			total++;
+			vec2 coord = vec2(fTexCoord.x + uvPerKernel.x * float(j), fTexCoord.y + uvPerKernel.y * float(i));
+			resultColor += texture2D(sampler2d, coord);
 		}
 	}
 	
-	origColor /= float(total);
+	float total = float(kernelSize) * 2.0 + 1.0;
+	total *= total;
 	
-	gl_FragColor = texColor;
+	resultColor /= total;
+	
+	gl_FragColor = resultColor;
 }
