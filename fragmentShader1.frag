@@ -9,7 +9,9 @@ uniform float Time;
 const vec2 resolution = vec2(800.0, 600.0);
 
 //Box Blur
-const int kernelSize = 6;
+const int kernelSize = 5;
+
+const float speed = 5.0;
 
 //Linearly interpolate between two values
 float lerp(float v0, float v1, float t)
@@ -28,17 +30,20 @@ void main()
 	vec2 uvPerKernel = 1.0 / resolution;
 	
 	vec4 resultColor = vec4(0.0);
+	int timedKernelSize = kernelSize - int(floor(float(kernelSize) * abs(sin(Time * speed)) + 0.5));
 	
-	for(int i = -kernelSize; i <= kernelSize; i++)
+	for(int i = -timedKernelSize; i <= timedKernelSize; i++)
 	{
-		for(int j = -kernelSize; j <= kernelSize; j++)
+		for(int j = -timedKernelSize; j <= timedKernelSize; j++)
 		{
-			vec2 coord = vec2(fTexCoord.x + uvPerKernel.x * float(j), fTexCoord.y + uvPerKernel.y * float(i));
+			float x = fTexCoord.x + uvPerKernel.x * float(j);
+			float y = fTexCoord.y + uvPerKernel.y * float(i);
+			vec2 coord = vec2(x, y);
 			resultColor += texture2D(sampler2d, coord);
 		}
 	}
 	
-	float total = float(kernelSize) * 2.0 + 1.0;
+	float total = float(timedKernelSize) * 2.0 + 1.0;
 	total *= total;
 	
 	resultColor /= total;
