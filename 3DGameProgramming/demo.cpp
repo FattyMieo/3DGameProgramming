@@ -20,7 +20,7 @@
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
-#define TEXTURE_COUNT 2
+#define TEXTURE_COUNT 10
 
 //Must be power of 2
 #define SPECTRUM_SIZE 1024
@@ -226,6 +226,7 @@ int Init ( void )
    loadTexture("../media/rgb.bmp", GtextureID[2]);
    loadTexture("../media/barack-obama.bmp", GtextureID[3]);
    loadTexture("../media/rainbow-stripes.bmp", GtextureID[4]);
+   loadTexture("../media/TestingMOAR.bmp", GtextureID[5]);
 
    // Initialize FMOD
    //initFmod();
@@ -367,7 +368,7 @@ void Draw(void)
 		1.0f, 1.0f
 	};
 
-	glBindTexture(GL_TEXTURE_2D, GtextureID[4]);
+	glBindTexture(GL_TEXTURE_2D, GtextureID[5]);
 
    // Set the viewport
    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
