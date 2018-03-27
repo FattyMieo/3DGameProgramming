@@ -13,6 +13,8 @@
 #include <string>
 #include <fstream>
 
+#include "angle_util/Matrix.h"
+#include "angle_util/geometry_utils.h"
 #include "bitmap.h"
 #include <fmod.hpp>
 #include <fmod_errors.h>
@@ -30,6 +32,9 @@ GLint GprogramID = -1;
 GLuint GtextureID[TEXTURE_COUNT];
 
 GLFWwindow* window;
+
+Matrix4 gPerspectiveMatrix;
+Matrix4 gViewMatrix;
 
 float m_spectrumLeft[SPECTRUM_SIZE];
 float m_spectrumRight[SPECTRUM_SIZE];
@@ -282,11 +287,115 @@ int Init ( void )
    GprogramID = programObject;
 
    glClearColor ( 0.0f, 0.0f, 0.0f, 0.0f );
+	
+   glEnable(GL_DEPTH_TEST);
+   glEnable(GL_BLEND);
+   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+   //Initialize Matrices
+   gPerspectiveMatrix = Matrix4::perspective
+   (
+	   60.0f,
+	   (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT,
+	   0.5f, 30.0f
+   );
+
+   gViewMatrix = Matrix4::translate(Vector3(0.0f, 0.0f, -2.0f));
+
    return 1;
+}
+
+void UpdateCamera(void)
+{
+	static float yaw = 0.0f;
+	static float pitch = 0.0f;
+	static float distance = 1.5f;
+
+	if (glfwGetKey(window, 'A')) pitch -= 1.0f;
+	if (glfwGetKey(window, 'D')) pitch += 1.0f;
+	if (glfwGetKey(window, 'W')) yaw -= 1.0f;
+	if (glfwGetKey(window, 'S')) yaw += 1.0f;
+
+	if (glfwGetKey(window, 'R'))
+	{
+		distance -= 0.06f;
+		if (distance < 1.0f)
+			distance = 1.0f;
+	}
+	if (glfwGetKey(window, 'F')) distance += 0.06f;
+
+	gViewMatrix = Matrix4::translate
+	(
+		Vector3(0.0f, 0.0f, -distance)) *
+		Matrix4::rotate(yaw, Vector3(1.0f, 0.0f, 0.0f)) *
+		Matrix4::rotate(pitch, Vector3(0.0f, 1.0f, 0.0f)
+	);
+}
+
+void DrawSquare()
+{
+	static GLfloat vVertices[] =
+	{
+		-1.0f, -1.0f, 0.0f,
+		1.0f, -1.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f,
+		1.0f, -1.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f,
+		1.0f,  1.0f, 0.0f
+	};
+
+	static GLfloat vColors[] = // !! Color for each vertex
+	{
+		1.0f, 0.0f, 0.0f, 1.0f,
+		0.0f, 1.0f, 0.0f, 1.0f,
+		0.0f, 0.0f, 1.0f, 1.0f,
+		0.0f, 1.0f, 0.0f, 1.0f,
+		0.0f, 0.0f, 1.0f, 1.0f,
+		1.0f, 0.0f, 0.0f, 1.0f
+	};
+
+	static GLfloat vTexCoords[] = // !! TexCoord for each vertex
+	{
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+		0.0f, 1.0f,
+		1.0f, 0.0f,
+		0.0f, 1.0f,
+		1.0f, 1.0f
+	};
+
+	glBindTexture(GL_TEXTURE_2D, GtextureID[5]);
+
+	// Use the program object
+	glUseProgram(GprogramID);
+
+	// Load the vertex data
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, vColors);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, vTexCoords);
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
 }
 
 void Draw(void)
 {
+	// Set the viewport
+	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+	// Clear the buffers
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Update Camera
+	UpdateCamera();
+
 	//Set the sampler2D varying variable to the first texture unit (index 0)
 	glUniform1i(glGetUniformLocation(GprogramID, "sampler2d"), 0);
 
@@ -338,56 +447,22 @@ void Draw(void)
 	};
 	*/
 
-	static GLfloat vVertices[] =
+	static float modelRotation = 0.0f;
+
+	Matrix4 modelMatrix = Matrix4::translate
+	(
+		Vector3(0.0f, 0.0f, 0.0f)) *
+		Matrix4::rotate(-modelRotation, Vector3(0.0f, 1.0f, 0.0f)
+	);
+
+	Matrix4 mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+	GLint mvpMatrixLoc = glGetUniformLocation(GprogramID, "uMvpMatrix");
+	if (mvpMatrixLoc != -1)
 	{
-		-1.0f, -1.0f, 0.0f,
-		 1.0f, -1.0f, 0.0f,
-		-1.0f,  1.0f, 0.0f,
-		 1.0f, -1.0f, 0.0f,
-		-1.0f,  1.0f, 0.0f,
-		 1.0f,  1.0f, 0.0f
-	};
+		glUniformMatrix4fv(mvpMatrixLoc, 1, GL_FALSE, mvpMatrix.data); // Pass mvpMatirx to the vertex shader
+	}
 
-	static GLfloat vColors[] = // !! Color for each vertex
-	{
-		1.0f, 0.0f, 0.0f, 1.0f,
-		0.0f, 1.0f, 0.0f, 1.0f,
-		0.0f, 0.0f, 1.0f, 1.0f,
-		0.0f, 1.0f, 0.0f, 1.0f,
-		0.0f, 0.0f, 1.0f, 1.0f,
-		1.0f, 0.0f, 0.0f, 1.0f
-	};
-
-	static GLfloat vTexCoords[] = // !! TexCoord for each vertex
-	{
-		0.0f, 0.0f,
-		1.0f, 0.0f,
-		0.0f, 1.0f,
-		1.0f, 0.0f,
-		0.0f, 1.0f,
-		1.0f, 1.0f
-	};
-
-	glBindTexture(GL_TEXTURE_2D, GtextureID[5]);
-
-   // Set the viewport
-   glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-   // Clear the color buffer
-   glClear(GL_COLOR_BUFFER_BIT);
-
-   // Use the program object
-   glUseProgram(GprogramID);
-
-   // Load the vertex data
-   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
-   glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, vColors);
-   glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, vTexCoords);
-   glEnableVertexAttribArray(0);
-   glEnableVertexAttribArray(1);
-   glEnableVertexAttribArray(2);
-
-   glDrawArrays(GL_TRIANGLES, 0, 6);
+	DrawSquare();
 }
 
 int main(void)
