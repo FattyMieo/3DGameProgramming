@@ -10,7 +10,7 @@ const vec2 resolution = vec2(800.0, 600.0);
 const vec2 uvPerKernel = 1.0 / resolution;
 
 //Box Blur
-const float radius = 10.0;
+const float radius = 5.0;
 const float jumpPixel = 1.0;
 //const float speed = 5.0;
 
@@ -63,7 +63,7 @@ void main()
 			if(x < 0.0 || x > 1.0) continue;
 			
 			if(useGaussianBlur)
-				if(j*j + i*i > radius * radius) continue; // Don't take those who is out of circle
+				if(j * j + i * i > radius * radius) continue; // ** Don't take those who is out of circle **
 			
 			vec4 pixelColor = texture2D(sampler2d, vec2(x, y));
 			
@@ -79,7 +79,7 @@ void main()
 			
 			resultColor += pixelColor;
 			
-			total += weight; 																											//Add weight to total instead of using 1.0
+			total += weight; //Add weight to total instead of using 1.0
 		}
 	}
 	

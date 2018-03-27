@@ -226,7 +226,7 @@ int Init ( void )
    loadTexture("../media/rgb.bmp", GtextureID[2]);
    loadTexture("../media/barack-obama.bmp", GtextureID[3]);
    loadTexture("../media/rainbow-stripes.bmp", GtextureID[4]);
-   loadTexture("../media/TestingMOAR.bmp", GtextureID[5]);
+   loadTexture("../media/gtx-promo.bmp", GtextureID[5]);
 
    // Initialize FMOD
    //initFmod();
