@@ -31,6 +31,11 @@
 GLint GprogramID = -1;
 GLuint GtextureID[TEXTURE_COUNT];
 
+GLuint Gframebuffer;
+GLuint GdepthRenderbuffer;
+
+GLuint GfullscreenTexture;
+
 GLFWwindow* window;
 
 Matrix4 gPerspectiveMatrix;
@@ -236,6 +241,23 @@ int Init ( void )
    // Initialize FMOD
    //initFmod();
 
+   // Create a new FBO (Frame Bufffer Object)
+   glGenFramebuffers(1, &Gframebuffer);
+
+   // Create a new empty texture for rendering original scene
+   glGenTextures(1, &GfullscreenTexture);
+   glBindTexture(GL_TEXTURE_2D, GfullscreenTexture);
+   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+   // Create and bind render buffer, and create a 16-bit depth buffer
+   glGenRenderbuffers(1, &GdepthRenderbuffer);
+   glBindRenderbuffer(GL_RENDERBUFFER, GdepthRenderbuffer);
+   glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, WINDOW_WIDTH, WINDOW_HEIGHT);
+
    // Load Shaders
    vertexShader = LoadShaderFromFile(GL_VERTEX_SHADER, "../vertexShader1.vert" );
    fragmentShader = LoadShaderFromFile(GL_FRAGMENT_SHADER, "../fragmentShader1.frag" );
@@ -332,7 +354,7 @@ void UpdateCamera(void)
 	);
 }
 
-void DrawSquare()
+void DrawSquare(GLuint texture)
 {
 	static GLfloat vVertices[] =
 	{
@@ -364,10 +386,7 @@ void DrawSquare()
 		1.0f, 1.0f
 	};
 
-	glBindTexture(GL_TEXTURE_2D, GtextureID[5]);
-
-	// Use the program object
-	glUseProgram(GprogramID);
+	glBindTexture(GL_TEXTURE_2D, texture);
 
 	// Load the vertex data
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
@@ -387,19 +406,16 @@ void DrawSquare()
 
 void Draw(void)
 {
-	// Set the viewport
-	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+	// Use the program object, it's possible that you have multiple shader programs and switch it accordingly
+	glUseProgram(GprogramID);
 
-	// Clear the buffers
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	// Update Camera
-	UpdateCamera();
-
-	//Set the sampler2D varying variable to the first texture unit (index 0)
+	// Set the sampler2D varying variable to the first texture unit (index 0)
 	glUniform1i(glGetUniformLocation(GprogramID, "sampler2d"), 0);
 
-	//Time
+	// Pass texture size to shader
+	glUniform2fv(glGetUniformLocation(GprogramID, "resolution"), 1, new GLfloat[2]{ (GLfloat)WINDOW_WIDTH, (GLfloat)WINDOW_HEIGHT });
+
+	// Time
 	static float time = 0.0f;
 	time += 0.01f;
 	GLint timeLoc = glGetUniformLocation(GprogramID, "Time");
@@ -407,6 +423,73 @@ void Draw(void)
 	{
 		glUniform1f(timeLoc, time);
 	}
+
+	// Update Camera
+	UpdateCamera();
+
+	// Set the viewport
+	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+	// Clear the buffers (Clear the screen basically)
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	//==================================================
+	// 1st pass - Render entire screen as a texture
+	//==================================================
+	// Bind the framebuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
+
+	// Specify texture as color attachment
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GfullscreenTexture, 0);
+
+	// specify depth_renderbufer as depth attachment
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, GdepthRenderbuffer);
+	
+	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status == GL_FRAMEBUFFER_COMPLETE)
+	{
+		// Clear the buffers (Clear the screen basically)
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// Set to no blur
+		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), -1); 
+
+		Matrix4 modelMatrix, mvpMatrix;
+
+		// Draw first rectangle
+		modelMatrix =	Matrix4::translate(Vector3(-1.2f, 0.0f, 0.0f)) *
+						Matrix4::rotate(0, Vector3(0.0f, 1.0f, 0.0f));
+		mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+		DrawSquare(GtextureID[5]);
+
+		// Draw second rectangle
+		modelMatrix =	Matrix4::translate(Vector3(1.2f, 0.0f, 0.0f)) *
+						Matrix4::rotate(0, Vector3(0.0f, 1.0f, 0.0f));
+		mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+		DrawSquare(GtextureID[5]);
+	}
+	else
+	{
+		printf("Framebuffer is not ready!\n");
+	}
+
+	//==================================================
+	// 2nd Pass - Blur the texture
+	//==================================================
+	// This time, render directly to Windows System Framebuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// Clear the buffers (Clear the screen basically)
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
+	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
+
+	// Draw the texture that has been screen captured, apply blurring
+	glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), 0);
+	DrawSquare(GfullscreenTexture);
 
 	//Fmod Update
 	//updateFmod();
@@ -447,6 +530,8 @@ void Draw(void)
 	};
 	*/
 
+	//Double spinning Rects
+	/*
 	static float modelRotation = 0.0f;
 
 	Matrix4 modelMatrix = Matrix4::translate(Vector3(0.0f, 0.0f, 0.0f)) *
@@ -454,12 +539,12 @@ void Draw(void)
 
 	Matrix4 mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
 	GLint mvpMatrixLoc = glGetUniformLocation(GprogramID, "uMvpMatrix");
-	/*
-	if (mvpMatrixLoc != -1)
-	{
-		glUniformMatrix4fv(mvpMatrixLoc, 1, GL_FALSE, mvpMatrix.data); // Pass mvpMatirx to the vertex shader
-	}
-	*/
+	
+	//if (mvpMatrixLoc != -1)
+	//{
+	//	glUniformMatrix4fv(mvpMatrixLoc, 1, GL_FALSE, mvpMatrix.data); // Pass mvpMatirx to the vertex shader
+	//}
+	
 	static float spacing = 1.0f;
 	static float zAxis = -1.5f;
 	static float rotSpeed = 100.0f;
@@ -474,11 +559,12 @@ void Draw(void)
 
 	glUniformMatrix4fv(mvpMatrixLoc, 1, GL_FALSE, lSquareMatrix.data); // Pass lSquareMatrix to the vertex shader
 
-	DrawSquare();
+	DrawSquare(GtextureID[5]);
 
 	glUniformMatrix4fv(mvpMatrixLoc, 1, GL_FALSE, rSquareMatrix.data); // Pass rSquareMatrix to the vertex shader
 
-	DrawSquare();
+	DrawSquare(GtextureID[5]);
+	*/
 }
 
 int main(void)
