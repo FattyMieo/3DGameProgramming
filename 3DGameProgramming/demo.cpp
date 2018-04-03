@@ -449,18 +449,34 @@ void Draw(void)
 
 	static float modelRotation = 0.0f;
 
-	Matrix4 modelMatrix = Matrix4::translate
-	(
-		Vector3(0.0f, 0.0f, 0.0f)) *
-		Matrix4::rotate(-modelRotation, Vector3(0.0f, 1.0f, 0.0f)
-	);
+	Matrix4 modelMatrix = Matrix4::translate(Vector3(0.0f, 0.0f, 0.0f)) *
+						  Matrix4::rotate(-modelRotation, Vector3(0.0f, 1.0f, 0.0f));
 
 	Matrix4 mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
 	GLint mvpMatrixLoc = glGetUniformLocation(GprogramID, "uMvpMatrix");
+	/*
 	if (mvpMatrixLoc != -1)
 	{
 		glUniformMatrix4fv(mvpMatrixLoc, 1, GL_FALSE, mvpMatrix.data); // Pass mvpMatirx to the vertex shader
 	}
+	*/
+	static float spacing = 1.0f;
+	static float zAxis = -1.5f;
+	static float rotSpeed = 100.0f;
+
+	Matrix4 lTransMatrix = Matrix4::translate(Vector3(-spacing, 0.0f, zAxis)) *
+						   Matrix4::rotate(-time * rotSpeed, Vector3(0.0f, 1.0f, 0.0f));
+	Matrix4 rTransMatrix = Matrix4::translate(Vector3(spacing, 0.0f, zAxis)) *
+						   Matrix4::rotate(time * rotSpeed, Vector3(0.0f, 1.0f, 0.0f));
+
+	Matrix4 lSquareMatrix = gPerspectiveMatrix * gViewMatrix * lTransMatrix * modelMatrix;
+	Matrix4 rSquareMatrix = gPerspectiveMatrix * gViewMatrix * rTransMatrix * modelMatrix;
+
+	glUniformMatrix4fv(mvpMatrixLoc, 1, GL_FALSE, lSquareMatrix.data); // Pass lSquareMatrix to the vertex shader
+
+	DrawSquare();
+
+	glUniformMatrix4fv(mvpMatrixLoc, 1, GL_FALSE, rSquareMatrix.data); // Pass rSquareMatrix to the vertex shader
 
 	DrawSquare();
 }
