@@ -35,6 +35,7 @@ GLuint Gframebuffer;
 GLuint GdepthRenderbuffer;
 
 GLuint GfullscreenTexture;
+GLuint GblurTexture;
 
 GLFWwindow* window;
 
@@ -244,6 +245,15 @@ int Init ( void )
    // Create a new FBO (Frame Bufffer Object)
    glGenFramebuffers(1, &Gframebuffer);
 
+   // Create a new empty texture for rendering blurred texture
+   glGenTextures(1, &GblurTexture);
+   glBindTexture(GL_TEXTURE_2D, GblurTexture);
+   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
    // Create a new empty texture for rendering original scene
    glGenTextures(1, &GfullscreenTexture);
    glBindTexture(GL_TEXTURE_2D, GfullscreenTexture);
@@ -433,6 +443,7 @@ void Draw(void)
 	// Clear the buffers (Clear the screen basically)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	GLenum status;
 	//==================================================
 	// 1st pass - Render entire screen as a texture
 	//==================================================
@@ -445,7 +456,7 @@ void Draw(void)
 	// specify depth_renderbufer as depth attachment
 	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, GdepthRenderbuffer);
 	
-	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	if (status == GL_FRAMEBUFFER_COMPLETE)
 	{
 		// Clear the buffers (Clear the screen basically)
@@ -476,10 +487,43 @@ void Draw(void)
 	}
 
 	//==================================================
-	// 2nd Pass - Blur the texture
+	// 2nd Pass - Blur the texture (Horizontal)
+	//==================================================
+	// Bind the framebuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
+
+	// Specify texture as color attachment
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GblurTexture, 0);
+
+	// Don't have to specify depth_renderbufer as depth attachment
+	// ...
+
+	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status == GL_FRAMEBUFFER_COMPLETE)
+	{
+		// Clear the buffers (Clear the screen basically)
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
+		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
+
+		// Draw the texture that has been screen captured, apply Horizontal blurring
+		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), 0);
+		DrawSquare(GfullscreenTexture);
+	}
+	else
+	{
+		printf("Framebuffer is not ready!\n");
+	}
+
+	//==================================================
+	// 3rd Pass - Blur the texture (Vertical)
 	//==================================================
 	// This time, render directly to Windows System Framebuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// Don't have to Specify texture as color attachment - since we don't need one
+	// ...
 
 	// Clear the buffers (Clear the screen basically)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -487,9 +531,9 @@ void Draw(void)
 	// Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
 	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
 
-	// Draw the texture that has been screen captured, apply blurring
-	glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), 0);
-	DrawSquare(GfullscreenTexture);
+	// Draw the texture that has been screen captured, apply Vertical blurring
+	glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), 1);
+	DrawSquare(GblurTexture);
 
 	//Fmod Update
 	//updateFmod();
