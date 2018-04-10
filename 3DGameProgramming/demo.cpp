@@ -35,7 +35,8 @@ GLuint Gframebuffer;
 GLuint GdepthRenderbuffer;
 
 GLuint GfullscreenTexture;
-GLuint GblurTexture;
+GLuint GpTexture_0;
+GLuint GpTexture_1;
 
 GLFWwindow* window;
 
@@ -245,18 +246,25 @@ int Init ( void )
    // Create a new FBO (Frame Bufffer Object)
    glGenFramebuffers(1, &Gframebuffer);
 
-   // Create a new empty texture for rendering blurred texture
-   glGenTextures(1, &GblurTexture);
-   glBindTexture(GL_TEXTURE_2D, GblurTexture);
+   // Create a new empty texture for rendering original scene
+   glGenTextures(1, &GfullscreenTexture);
+   glBindTexture(GL_TEXTURE_2D, GfullscreenTexture);
    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-   // Create a new empty texture for rendering original scene
-   glGenTextures(1, &GfullscreenTexture);
-   glBindTexture(GL_TEXTURE_2D, GfullscreenTexture);
+   // Create 2 new empty textures for processing textures
+   glGenTextures(1, &GpTexture_0);
+   glBindTexture(GL_TEXTURE_2D, GpTexture_0);
+   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+   glGenTextures(1, &GpTexture_1);
+   glBindTexture(GL_TEXTURE_2D, GpTexture_1);
    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -462,6 +470,9 @@ void Draw(void)
 		// Clear the buffers (Clear the screen basically)
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		// Set state to normal
+		glUniform1i(glGetUniformLocation(GprogramID, "uState"), -1);
+
 		// Set to no blur
 		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), -1); 
 
@@ -487,13 +498,13 @@ void Draw(void)
 	}
 
 	//==================================================
-	// 2nd Pass - Blur the texture (Horizontal)
+	// 2nd Pass - Run High Pass Filter on the texture
 	//==================================================
 	// Bind the framebuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
 
 	// Specify texture as color attachment
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GblurTexture, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GpTexture_0, 0);
 
 	// Don't have to specify depth_renderbufer as depth attachment
 	// ...
@@ -507,8 +518,12 @@ void Draw(void)
 		// Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
 		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
 
-		// Draw the texture that has been screen captured, apply Horizontal blurring
-		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), 0);
+		// Set state to high pass filter
+		glUniform1i(glGetUniformLocation(GprogramID, "uState"), 0);
+
+		// Set to no blur
+		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), -1);
+
 		DrawSquare(GfullscreenTexture);
 	}
 	else
@@ -517,7 +532,75 @@ void Draw(void)
 	}
 
 	//==================================================
-	// 3rd Pass - Blur the texture (Vertical)
+	// 3rd Pass - Blur the texture horizontally
+	//==================================================
+	// Bind the framebuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
+
+	// Specify texture as color attachment
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GpTexture_1, 0);
+
+	// Don't have to specify depth_renderbufer as depth attachment
+	// ...
+
+	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status == GL_FRAMEBUFFER_COMPLETE)
+	{
+		// Clear the buffers (Clear the screen basically)
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
+		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
+
+		// Set state to gaussian blur
+		glUniform1i(glGetUniformLocation(GprogramID, "uState"), 1);
+
+		// Draw the texture that has been screen captured, apply Horizontal blurring
+		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), 0);
+
+		DrawSquare(GpTexture_0);
+	}
+	else
+	{
+		printf("Framebuffer is not ready!\n");
+	}
+
+	//==================================================
+	// 4th Pass - Blur the texture vertically
+	//==================================================
+	// Bind the framebuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
+
+	// Specify texture as color attachment
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GpTexture_0, 0);
+
+	// Don't have to specify depth_renderbufer as depth attachment
+	// ...
+
+	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status == GL_FRAMEBUFFER_COMPLETE)
+	{
+		// Clear the buffers (Clear the screen basically)
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
+		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
+
+		// Set state to gaussian blur
+		glUniform1i(glGetUniformLocation(GprogramID, "uState"), 1);
+
+		// Draw the texture that has been screen captured, apply Vertical blurring
+		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), 1);
+
+		DrawSquare(GpTexture_1);
+	}
+	else
+	{
+		printf("Framebuffer is not ready!\n");
+	}
+
+	//==================================================
+	// Final Pass - Compose the textures together
 	//==================================================
 	// This time, render directly to Windows System Framebuffer
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -531,9 +614,25 @@ void Draw(void)
 	// Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
 	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
 
-	// Draw the texture that has been screen captured, apply Vertical blurring
-	glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), 1);
-	DrawSquare(GblurTexture);
+	// Set state to normal
+	glUniform1i(glGetUniformLocation(GprogramID, "uState"), -1);
+
+	// Set to no blur
+	glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), -1);
+
+	// Draw the textures
+	glDepthMask(GL_FALSE);
+
+	DrawSquare(GfullscreenTexture);
+
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+	DrawSquare(GpTexture_0);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glDepthMask(GL_TRUE);
+
+
+
 
 	//Fmod Update
 	//updateFmod();

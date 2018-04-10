@@ -4,34 +4,12 @@ varying vec4 fColor;
 varying vec2 fTexCoord;
 
 uniform sampler2D sampler2d;
+uniform int uState;
 uniform int uBlurDirection;
 uniform vec2 resolution;
 uniform float Time;
 
 vec2 uvPerKernel = 1.0 / resolution;
-
-//Box Blur
-const float radius = 50.0;
-const float jumpPixel = 1.0;
-//const float speed = 5.0;
-
-//Gaussian Blur
-const float variance = 0.15; // x & y should be -1.0 to 1.0 with this variance
-const bool useGaussianBlur = true;
-
-float gaussianFunction(float x)
-{
-	float alpha = - (x * x / (2.0 * variance));
-	
-	return exp(alpha);
-}
-
-float gaussianFunction2D(float x, float y) //x & y represents the "UV" distance from the origin
-{
-	float alpha = - ((x * x + y * y) / (2.0 * variance));
-	
-	return exp(alpha);
-}
 
 //Linearly interpolate between two values
 float lerp(float v0, float v1, float t)
@@ -44,83 +22,88 @@ float invLerp(float v0, float v1, float v)
 	return (v - v0) / (v1 - v0);
 }
 
+vec4 highPassFilter(vec4 texColor, float normalizedExposure)
+{
+	vec4 ret = texColor;
+	
+	float avgColor = (texColor.x + texColor.y + texColor.z) / 3.0;
+	
+	if(avgColor < normalizedExposure)
+	{
+		ret = vec4(0.0);
+	}
+	
+	return ret;
+}
+
+float gaussianFunction(float x, float variance)
+{
+	float alpha = - (x * x / (2.0 * variance));
+	
+	return exp(alpha);
+}
+
+vec4 gaussianBlur(vec4 texColor, float radius, int blurDirection, float jumpPixel, float variance) 
+{
+	vec4 ret = vec4(0.0);
+	
+	float total = 0.0;
+
+	for(float i = -radius; i <= radius; i+=jumpPixel)
+	{
+		float x = fTexCoord.x;
+		float y = fTexCoord.y;
+		
+		if(blurDirection == 0)
+		{
+			x += uvPerKernel.x * i;
+		}
+		else if(blurDirection == 1)
+		{
+			y += uvPerKernel.y * i;
+		}
+		
+		if(x < 0.0 || x > 1.0)
+			continue;
+		if(y < 0.0 || y > 1.0)
+			continue;
+		
+		vec4 pixelColor = texture2D(sampler2d, vec2(x, y));
+		float weight = gaussianFunction(i / radius, variance);
+		
+		pixelColor *= weight;
+		ret += pixelColor;
+		total += weight;
+	}
+	
+	ret /= total;
+	
+	return ret;
+}
+
+vec4 gaussianBlur(vec4 texColor, float radius, int blurDirection, float jumpPixel) 
+{
+	return gaussianBlur(texColor, radius, blurDirection, jumpPixel, 0.15);// x & y should be -1.0 to 1.0 with this variance
+}
+
+vec4 gaussianBlur(vec4 texColor, float radius, int blurDirection) 
+{
+	return gaussianBlur(texColor, radius, blurDirection, 1.0);
+}
+
 void main()
 {
 	vec4 texColor = texture2D(sampler2d, fTexCoord);
 	
-	if(uBlurDirection == 0) // Apply Horizontal Blur
+	if(uState == 0) 
 	{
-		vec4 resultColor = vec4(0.0);
-		//int timedRadius = radius - int(floor(float(radius) * abs(sin(Time * speed)) + 0.5));
-		
-		float total = 0.0;
-		
-		for(float j = -radius; j <= radius; j+=jumpPixel)
-		{
-			float x = fTexCoord.x + uvPerKernel.x * float(j);
-			if(x < 0.0 || x > 1.0) continue;
-			
-			float y = fTexCoord.y;
-			
-			//Don't have to check if pixel is out of circle since it's one dimensional
-			//if(useGaussianBlur)
-			//	if(j * j > radius * radius) continue;
-			
-			vec4 pixelColor = texture2D(sampler2d, vec2(x, y));
-			
-			float weight = 1.0;
-			
-			if(useGaussianBlur)
-				weight = gaussianFunction(j / radius);
-			
-			pixelColor *= weight;
-			
-			resultColor += pixelColor;
-			
-			total += weight; //Add weight to total instead of using 1.0
-		}
-		
-		resultColor /= float(total);
-		
-		gl_FragColor = resultColor;
+		gl_FragColor = highPassFilter(texColor, 0.25);
 	}
-	else if(uBlurDirection == 1) // Apply Vertical Blur
+	else if(uState == 1)
 	{
-		vec4 resultColor = vec4(0.0);
-		//int timedRadius = radius - int(floor(float(radius) * abs(sin(Time * speed)) + 0.5));
-		
-		float total = 0.0;
-		
-		for(float i = -radius; i <= radius; i+=jumpPixel)
-		{
-			float y = fTexCoord.y + uvPerKernel.y * float(i);
-			if(y < 0.0 || y > 1.0) continue;
-			
-			float x = fTexCoord.x;
-				
-			//Don't have to check if pixel is out of circle since it's one dimensional
-			//if(useGaussianBlur)
-			//	if(i * i > radius * radius) continue;
-			
-			vec4 pixelColor = texture2D(sampler2d, vec2(x, y));
-			
-			float weight = 1.0;
-			
-			if(useGaussianBlur)
-				weight = gaussianFunction(i / radius);
-			
-			pixelColor *= weight;
-			
-			resultColor += pixelColor;
-			
-			total += weight; //Add weight to total instead of using 1.0
-		}
-		
-		resultColor /= float(total);
-		
-		gl_FragColor = resultColor;
+		gl_FragColor = gaussianBlur(texColor, 20.0, uBlurDirection);
 	}
-	else //Don't apply Blur
+	else
 	{
 		gl_FragColor = texColor;
 	}
