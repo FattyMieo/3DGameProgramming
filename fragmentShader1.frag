@@ -30,7 +30,7 @@ vec4 highPassFilter(vec4 texColor, float normalizedExposure)
 	
 	if(avgColor < normalizedExposure)
 	{
-		ret = vec4(0.0);
+		ret = vec4(0.0, 0.0, 0.0, 1.0);
 	}
 	
 	return ret;
@@ -45,7 +45,7 @@ float gaussianFunction(float x, float variance)
 
 vec4 gaussianBlur(vec4 texColor, float radius, int blurDirection, float jumpPixel, float variance) 
 {
-	vec4 ret = vec4(0.0);
+	vec4 ret = vec4(0.0, 0.0, 0.0, 1.0);
 	
 	float total = 0.0;
 
@@ -97,11 +97,11 @@ void main()
 	
 	if(uState == 0) 
 	{
-		gl_FragColor = highPassFilter(texColor, 0.25);
+		gl_FragColor = highPassFilter(texColor, 0.75);
 	}
 	else if(uState == 1)
 	{
-		gl_FragColor = gaussianBlur(texColor, 20.0, uBlurDirection);
+		gl_FragColor = gaussianBlur(texColor, 50.0, uBlurDirection, 2.0);
 	}
 	else
 	{

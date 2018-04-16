@@ -37,6 +37,7 @@ GLuint GdepthRenderbuffer;
 GLuint GfullscreenTexture;
 GLuint GpTexture_0;
 GLuint GpTexture_1;
+GLuint GpTexture_2;
 
 GLFWwindow* window;
 
@@ -239,6 +240,8 @@ int Init ( void )
    loadTexture("../media/barack-obama.bmp", GtextureID[3]);
    loadTexture("../media/rainbow-stripes.bmp", GtextureID[4]);
    loadTexture("../media/gtx-promo.bmp", GtextureID[5]);
+   loadTexture("../media/Mettle_Skybox_Cubic_Cross.bmp", GtextureID[6]);
+   loadTexture("../media/sky.bmp", GtextureID[7]);
 
    // Initialize FMOD
    //initFmod();
@@ -255,7 +258,7 @@ int Init ( void )
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-   // Create 2 new empty textures for processing textures
+   // Create 3 new empty textures for processing textures
    glGenTextures(1, &GpTexture_0);
    glBindTexture(GL_TEXTURE_2D, GpTexture_0);
    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
@@ -265,6 +268,13 @@ int Init ( void )
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
    glGenTextures(1, &GpTexture_1);
    glBindTexture(GL_TEXTURE_2D, GpTexture_1);
+   glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+   glGenTextures(1, &GpTexture_2);
+   glBindTexture(GL_TEXTURE_2D, GpTexture_2);
    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, WINDOW_WIDTH, WINDOW_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -327,8 +337,10 @@ int Init ( void )
    GprogramID = programObject;
 
    glClearColor ( 0.0f, 0.0f, 0.0f, 0.0f );
-	
+
+   // Enable depth test
    glEnable(GL_DEPTH_TEST);
+
    glEnable(GL_BLEND);
    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -337,7 +349,7 @@ int Init ( void )
    (
 	   60.0f,
 	   (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT,
-	   0.5f, 30.0f
+	   0.1f, 30.0f
    );
 
    gViewMatrix = Matrix4::translate(Vector3(0.0f, 0.0f, -2.0f));
@@ -364,34 +376,59 @@ void UpdateCamera(void)
 	}
 	if (glfwGetKey(window, 'F')) distance += 0.06f;
 
-	gViewMatrix = Matrix4::translate
-	(
-		Vector3(0.0f, 0.0f, -distance)) *
+	gViewMatrix = Matrix4::translate(Vector3(0.0f, 0.0f, -distance)) *
 		Matrix4::rotate(yaw, Vector3(1.0f, 0.0f, 0.0f)) *
-		Matrix4::rotate(pitch, Vector3(0.0f, 1.0f, 0.0f)
-	);
+		Matrix4::rotate(pitch, Vector3(0.0f, 1.0f, 0.0f));
 }
+
+/*
+void DrawFmod()
+{
+
+	//Fmod Update
+	//updateFmod();
+
+	static int mainSpectrum = 2;
+
+	//Print the first audio spectrum for both left and right channels
+	if(m_highestSpectrum[mainSpectrum] - m_spectrum[mainSpectrum] > 0.01f)
+	std::cout << mainSpectrum << "@" << m_spectrum[mainSpectrum] << std::endl;
+
+	GLint spectrumLoc = glGetUniformLocation(GprogramID, "Spectrum");
+	if (spectrumLoc != -1)
+	{
+	//glUniform1f(spectrumLoc, m_highestSpectrumLeft[2] + m_highestSpectrumRight[2]);
+	glUniform1f(spectrumLoc, m_highestSpectrum[mainSpectrum]);
+	}
+
+	GLint spectrumArrayLoc = glGetUniformLocation(GprogramID, "SpectrumArray");
+	if (spectrumArrayLoc != -1)
+	{
+	glUniform1fv(spectrumArrayLoc, SPECTRUM_EXP_2, m_highestSpectrum);
+	}
+}
+*/
 
 void DrawSquare(GLuint texture)
 {
 	static GLfloat vVertices[] =
 	{
 		-1.0f, -1.0f, 0.0f,
-		1.0f, -1.0f, 0.0f,
+		 1.0f, -1.0f, 0.0f,
 		-1.0f,  1.0f, 0.0f,
-		1.0f, -1.0f, 0.0f,
+		 1.0f, -1.0f, 0.0f,
 		-1.0f,  1.0f, 0.0f,
-		1.0f,  1.0f, 0.0f
+		 1.0f,  1.0f, 0.0f
 	};
 
 	static GLfloat vColors[] = // !! Color for each vertex
 	{
-		1.0f, 0.0f, 0.0f, 1.0f,
-		0.0f, 1.0f, 0.0f, 1.0f,
-		0.0f, 0.0f, 1.0f, 1.0f,
-		0.0f, 1.0f, 0.0f, 1.0f,
-		0.0f, 0.0f, 1.0f, 1.0f,
-		1.0f, 0.0f, 0.0f, 1.0f
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f
 	};
 
 	static GLfloat vTexCoords[] = // !! TexCoord for each vertex
@@ -420,6 +457,536 @@ void DrawSquare(GLuint texture)
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
 	glDisableVertexAttribArray(2);
+}
+
+void DrawSquare(GLuint texture, GLfloat* vTexCoords)
+{
+	static GLfloat vVertices[] =
+	{
+		-1.0f, -1.0f, 0.0f,
+		 1.0f, -1.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f,
+		 1.0f, -1.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f,
+		 1.0f,  1.0f, 0.0f
+	};
+
+	static GLfloat vColors[] = // !! Color for each vertex
+	{
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f
+	};
+
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	// Load the vertex data
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, vColors);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, vTexCoords);
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
+}
+
+//Normal Cube (Single-textured)
+void DrawCube(GLuint texture)
+{
+	static GLfloat vVertices[] =
+	{
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 
+		-1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 
+		 1.0f, -1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f, -1.0f,  1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f, -1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f,  1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f,  1.0f
+	};
+
+	static GLfloat vColors[] = // !! Color for each vertex
+	{
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+	};
+
+	static GLfloat vTexCoords[] = // !! TexCoord for each vertex
+	{
+		0.0f, 0.0f,
+		1.0f, 0.0f,
+		0.0f, 1.0f,
+		1.0f, 0.0f,
+		0.0f, 1.0f,
+		1.0f, 1.0f,
+
+		1.0f, 0.0f,
+		0.0f, 0.0f,
+		1.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 1.0f,
+		0.0f, 1.0f,
+
+		1.0f, 0.0f,
+		1.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 1.0f,
+		0.0f, 0.0f,
+		0.0f, 1.0f,
+
+		0.0f, 0.0f,
+		0.0f, 1.0f,
+		1.0f, 0.0f,
+		0.0f, 1.0f,
+		1.0f, 0.0f,
+		1.0f, 1.0f,
+
+		0.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 1.0f,
+		0.0f, 0.0f,
+		1.0f, 1.0f,
+		1.0f, 0.0f,
+
+		0.0f, 0.0f,
+		0.0f, 1.0f,
+		1.0f, 0.0f,
+		0.0f, 1.0f,
+		1.0f, 0.0f,
+		1.0f, 1.0f
+	};
+
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	// Load the vertex data
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, vColors);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, vTexCoords);
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
+}
+
+//Cubemap (Multi-texture)
+void DrawCubemap(GLuint texture)
+{
+	static GLfloat vVertices[] =
+	{
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+		 
+		-1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		 1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 
+		 1.0f, -1.0f, -1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f, -1.0f,  1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f, -1.0f,  1.0f,
+		 1.0f,  1.0f,  1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		 1.0f,  1.0f, -1.0f,
+		 1.0f,  1.0f,  1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		 1.0f, -1.0f, -1.0f,
+		 1.0f, -1.0f,  1.0f
+	};
+
+	static GLfloat vColors[] = // !! Color for each vertex
+	{
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f,
+	};
+
+	static GLfloat vTexCoords[] = // !! TexCoord for each vertex
+	{
+		0.25f + 0.25f * 0.0f, 0.333f + 0.333f * 0.0f,
+		0.25f + 0.25f * 1.0f, 0.333f + 0.333f * 0.0f,
+		0.25f + 0.25f * 0.0f, 0.333f + 0.333f * 1.0f,
+		0.25f + 0.25f * 1.0f, 0.333f + 0.333f * 0.0f,
+		0.25f + 0.25f * 0.0f, 0.333f + 0.333f * 1.0f,
+		0.25f + 0.25f * 1.0f, 0.333f + 0.333f * 1.0f,
+
+		0.75f + 0.25f * 1.0f, 0.333f + 0.333f * 0.0f,
+		0.75f + 0.25f * 0.0f, 0.333f + 0.333f * 0.0f,
+		0.75f + 0.25f * 1.0f, 0.333f + 0.333f * 1.0f,
+		0.75f + 0.25f * 0.0f, 0.333f + 0.333f * 0.0f,
+		0.75f + 0.25f * 1.0f, 0.333f + 0.333f * 1.0f,
+		0.75f + 0.25f * 0.0f, 0.333f + 0.333f * 1.0f,
+
+		0.50f + 0.25f * 1.0f, 0.333f + 0.333f * 0.0f,
+		0.50f + 0.25f * 1.0f, 0.333f + 0.333f * 1.0f,
+		0.50f + 0.25f * 0.0f, 0.333f + 0.333f * 0.0f,
+		0.50f + 0.25f * 1.0f, 0.333f + 0.333f * 1.0f,
+		0.50f + 0.25f * 0.0f, 0.333f + 0.333f * 0.0f,
+		0.50f + 0.25f * 0.0f, 0.333f + 0.333f * 1.0f,
+
+		0.00f + 0.25f * 0.0f, 0.333f + 0.333f * 0.0f,
+		0.00f + 0.25f * 0.0f, 0.333f + 0.333f * 1.0f,
+		0.00f + 0.25f * 1.0f, 0.333f + 0.333f * 0.0f,
+		0.00f + 0.25f * 0.0f, 0.333f + 0.333f * 1.0f,
+		0.00f + 0.25f * 1.0f, 0.333f + 0.333f * 0.0f,
+		0.00f + 0.25f * 1.0f, 0.333f + 0.333f * 1.0f,
+
+		0.25f + 0.25f * 0.0f, 0.666f + 0.333f * 1.0f,
+		0.25f + 0.25f * 0.0f, 0.666f + 0.333f * 0.0f,
+		0.25f + 0.25f * 1.0f, 0.666f + 0.333f * 1.0f,
+		0.25f + 0.25f * 0.0f, 0.666f + 0.333f * 0.0f,
+		0.25f + 0.25f * 1.0f, 0.666f + 0.333f * 1.0f,
+		0.25f + 0.25f * 1.0f, 0.666f + 0.333f * 0.0f,
+
+		0.25f + 0.25f * 0.0f, 0.000f + 0.333f * 0.0f,
+		0.25f + 0.25f * 0.0f, 0.000f + 0.333f * 1.0f,
+		0.25f + 0.25f * 1.0f, 0.000f + 0.333f * 0.0f,
+		0.25f + 0.25f * 0.0f, 0.000f + 0.333f * 1.0f,
+		0.25f + 0.25f * 1.0f, 0.000f + 0.333f * 0.0f,
+		0.25f + 0.25f * 1.0f, 0.000f + 0.333f * 1.0f
+	};
+
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	// Load the vertex data
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, vColors);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, vTexCoords);
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
+}
+
+enum PostProcessState
+{
+	PPS_RENDER_GLOWED = -2,
+	PPS_RENDER_SCENE = -1,
+	PPS_HIGH_PASS = 0,
+	PPS_GAUSSIAN_BLUR = 1,
+	PPS_ADDITIVE_BLEND = 2
+};
+
+void DrawStones(GLuint texture, float time = 0.0f)
+{
+	Matrix4 modelMatrix, mvpMatrix;
+
+	// Draw stones
+	modelMatrix = Matrix4::rotate(time * 200.0f, Vector3(1.0f, 1.0f, 0.0f)) *
+		Matrix4::translate(Vector3(0.0f, 0.0f, 0.0f)) *
+		Matrix4::scale(Vector3(0.25f, 0.25f, 0.25f));
+	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawCube(texture);
+
+	modelMatrix = Matrix4::rotate(-time * 100.0f, Vector3(0.0f, 1.0f, 0.0f)) *
+		Matrix4::translate(Vector3(-1.0f, 0.0f, 0.0f)) *
+		Matrix4::scale(Vector3(0.15f, 0.15f, 0.15f));
+	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawCube(texture);
+
+	modelMatrix = Matrix4::rotate(time * 100.0f, Vector3(0.0f, 0.0f, 1.0f)) *
+		Matrix4::translate(Vector3(1.0f, 0.0f, 0.0f)) *
+		Matrix4::scale(Vector3(0.15f, 0.15f, 0.15f));
+	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawCube(texture);
+
+	modelMatrix = Matrix4::rotate(-time * 150.0f, Vector3(1.0f, 1.0f, 0.0f)) *
+		Matrix4::translate(Vector3(-1.0f, 0.0f, 0.0f)) *
+		Matrix4::scale(Vector3(0.1f, 0.1f, 0.1f));
+	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawCube(texture);
+
+	modelMatrix = Matrix4::rotate(time * 150.0f, Vector3(1.0f, 1.0f, 0.0f)) *
+		Matrix4::translate(Vector3(1.0f, 0.0f, 0.0f)) *
+		Matrix4::scale(Vector3(0.1f, 0.1f, 0.1f));
+	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawCube(texture);
+}
+
+void DrawSkybox()
+{
+	Matrix4 modelMatrix, mvpMatrix;
+
+	// Draw skybox
+	modelMatrix = Matrix4::translate(Vector3(0.0f, 0.0f, 0.0f)) *
+		Matrix4::scale(Vector3(10.0f, 10.0f, 10.0f));
+	mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
+	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
+	DrawCubemap(GtextureID[7]);
+}
+
+void DrawRendered(PostProcessState state, float time = 0.0f)
+{
+	DrawSkybox();
+	if (state == PPS_RENDER_SCENE)
+		DrawStones(GtextureID[0], time);
+	else if (state == PPS_RENDER_GLOWED)
+		DrawStones(0, time);
+}
+
+void PostProcessDraw(GLuint framebuffer, float time, GLuint srcTexture, GLuint retTexture, PostProcessState state, int blurDirection, GLuint origTexture = 0)
+{
+	// Bind the framebuffer
+	glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+
+	// Specify texture as color attachment
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, retTexture, 0);
+
+	// specify depth_renderbufer as depth attachment
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, GdepthRenderbuffer);
+
+	GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status == GL_FRAMEBUFFER_COMPLETE)
+	{
+		// Clear the buffers (Clear the screen basically)
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
+		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
+
+		// Set state to gaussian blur
+		glUniform1i(glGetUniformLocation(GprogramID, "uState"), state);
+
+		// Draw the texture that has been screen captured, apply Vertical blurring
+		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), blurDirection);
+
+		if (state == PPS_RENDER_SCENE || state == PPS_RENDER_GLOWED)
+		{
+			// Accept fragment if it closer to the camera than the former one
+			// Very important not to overlay textures in a 3D space
+			glDepthFunc(GL_LESS);
+
+			DrawRendered(state, time);
+
+			// Always accept fragment no matter the distance
+			glDepthFunc(GL_ALWAYS);
+		}
+		else if (state == PPS_ADDITIVE_BLEND)
+		{
+			// Draw the textures
+			glDepthMask(GL_FALSE);
+
+			DrawSquare(origTexture);
+
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+			DrawSquare(srcTexture);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+			glDepthMask(GL_TRUE);
+		}
+		else
+		{
+			DrawSquare(srcTexture);
+		}
+	}
+	else
+	{
+		printf("Framebuffer is not ready!\n");
+	}
+}
+
+void HigherIntensityBloom(int iterations, float time, GLuint procTexture, GLuint t0, GLuint t1)
+{
+	for (int i = 0; i < iterations;)
+	{
+		if (i > 0)
+		{
+			// Swap texture IDs (if it's not the first iteration)
+			GLuint temp = procTexture;
+
+			procTexture = t1;
+			t1 = temp;
+		}
+
+		//==================================================
+		// 3rd Pass - Run High Pass Filter on the texture
+		//==================================================
+		PostProcessDraw(Gframebuffer, time, procTexture, t0, PPS_HIGH_PASS, -1);
+
+		//==================================================
+		// 4th Pass - Blur the texture horizontally
+		//==================================================
+		PostProcessDraw(Gframebuffer, time, t0, t1, PPS_GAUSSIAN_BLUR, 0);
+
+		//==================================================
+		// 5th Pass - Blur the texture vertically
+		//==================================================
+		PostProcessDraw(Gframebuffer, time, t1, t0, PPS_GAUSSIAN_BLUR, 1);
+
+		++i;
+		if (i >= iterations)
+		{
+			//==================================================
+			// Final Pass - Additively blend textures together
+			//==================================================
+			PostProcessDraw(0, time, t0, t1, PPS_ADDITIVE_BLEND, -1, GfullscreenTexture);
+		}
+		else
+		{
+			//==================================================
+			// Final Pass - Additively blend textures together
+			//==================================================
+			PostProcessDraw(Gframebuffer, time, t0, t1, PPS_ADDITIVE_BLEND, -1, procTexture);
+		}
+	}
 }
 
 void Draw(void)
@@ -451,211 +1018,41 @@ void Draw(void)
 	// Clear the buffers (Clear the screen basically)
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	GLenum status;
 	//==================================================
 	// 1st pass - Render entire screen as a texture
 	//==================================================
-	// Bind the framebuffer
-	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
+	PostProcessDraw(Gframebuffer, time, 0, GfullscreenTexture, PPS_RENDER_SCENE, -1);
 
-	// Specify texture as color attachment
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GfullscreenTexture, 0);
-
-	// specify depth_renderbufer as depth attachment
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, GdepthRenderbuffer);
+	//==================================================
+	// 2nd pass - Render entire screen as a texture
+	//==================================================
+	PostProcessDraw(Gframebuffer, time, 0, GpTexture_2, PPS_RENDER_GLOWED, -1);
 	
-	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	if (status == GL_FRAMEBUFFER_COMPLETE)
-	{
-		// Clear the buffers (Clear the screen basically)
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		// Set state to normal
-		glUniform1i(glGetUniformLocation(GprogramID, "uState"), -1);
-
-		// Set to no blur
-		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), -1); 
-
-		Matrix4 modelMatrix, mvpMatrix;
-
-		// Draw first rectangle
-		modelMatrix =	Matrix4::translate(Vector3(-1.2f, 0.0f, 0.0f)) *
-						Matrix4::rotate(0, Vector3(0.0f, 1.0f, 0.0f));
-		mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
-		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
-		DrawSquare(GtextureID[5]);
-
-		// Draw second rectangle
-		modelMatrix =	Matrix4::translate(Vector3(1.2f, 0.0f, 0.0f)) *
-						Matrix4::rotate(0, Vector3(0.0f, 1.0f, 0.0f));
-		mvpMatrix = gPerspectiveMatrix * gViewMatrix * modelMatrix;
-		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, mvpMatrix.data);
-		DrawSquare(GtextureID[5]);
-	}
-	else
-	{
-		printf("Framebuffer is not ready!\n");
-	}
+	//==================================================
+	// 3rd Pass - Run High Pass Filter on the texture
+	//==================================================
+	PostProcessDraw(Gframebuffer, time, GpTexture_2, GpTexture_0, PPS_HIGH_PASS, -1);
 
 	//==================================================
-	// 2nd Pass - Run High Pass Filter on the texture
+	// 4th Pass - Blur the texture horizontally
 	//==================================================
-	// Bind the framebuffer
-	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
-
-	// Specify texture as color attachment
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GpTexture_0, 0);
-
-	// Don't have to specify depth_renderbufer as depth attachment
-	// ...
-
-	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	if (status == GL_FRAMEBUFFER_COMPLETE)
-	{
-		// Clear the buffers (Clear the screen basically)
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		// Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
-		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
-
-		// Set state to high pass filter
-		glUniform1i(glGetUniformLocation(GprogramID, "uState"), 0);
-
-		// Set to no blur
-		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), -1);
-
-		DrawSquare(GfullscreenTexture);
-	}
-	else
-	{
-		printf("Framebuffer is not ready!\n");
-	}
+	PostProcessDraw(Gframebuffer, time, GpTexture_0, GpTexture_1, PPS_GAUSSIAN_BLUR, 0);
 
 	//==================================================
-	// 3rd Pass - Blur the texture horizontally
+	// 5th Pass - Blur the texture vertically
 	//==================================================
-	// Bind the framebuffer
-	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
-
-	// Specify texture as color attachment
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GpTexture_1, 0);
-
-	// Don't have to specify depth_renderbufer as depth attachment
-	// ...
-
-	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	if (status == GL_FRAMEBUFFER_COMPLETE)
-	{
-		// Clear the buffers (Clear the screen basically)
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		// Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
-		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
-
-		// Set state to gaussian blur
-		glUniform1i(glGetUniformLocation(GprogramID, "uState"), 1);
-
-		// Draw the texture that has been screen captured, apply Horizontal blurring
-		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), 0);
-
-		DrawSquare(GpTexture_0);
-	}
-	else
-	{
-		printf("Framebuffer is not ready!\n");
-	}
+	PostProcessDraw(Gframebuffer, time, GpTexture_1, GpTexture_0, PPS_GAUSSIAN_BLUR, 1);
 
 	//==================================================
-	// 4th Pass - Blur the texture vertically
+	// Final Pass - Additively blend textures together
 	//==================================================
-	// Bind the framebuffer
-	glBindFramebuffer(GL_FRAMEBUFFER, Gframebuffer);
-
-	// Specify texture as color attachment
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, GpTexture_0, 0);
-
-	// Don't have to specify depth_renderbufer as depth attachment
-	// ...
-
-	status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	if (status == GL_FRAMEBUFFER_COMPLETE)
-	{
-		// Clear the buffers (Clear the screen basically)
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		// Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
-		glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
-
-		// Set state to gaussian blur
-		glUniform1i(glGetUniformLocation(GprogramID, "uState"), 1);
-
-		// Draw the texture that has been screen captured, apply Vertical blurring
-		glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), 1);
-
-		DrawSquare(GpTexture_1);
-	}
-	else
-	{
-		printf("Framebuffer is not ready!\n");
-	}
-
-	//==================================================
-	// Final Pass - Compose the textures together
-	//==================================================
-	// This time, render directly to Windows System Framebuffer
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	// Don't have to Specify texture as color attachment - since we don't need one
-	// ...
-
-	// Clear the buffers (Clear the screen basically)
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	// Reset the mvpMatrix to identity matrix so that it renders fully on texture in normalized device coordinates
-	glUniformMatrix4fv(glGetUniformLocation(GprogramID, "uMvpMatrix"), 1, GL_FALSE, Matrix4::identity().data);
-
-	// Set state to normal
-	glUniform1i(glGetUniformLocation(GprogramID, "uState"), -1);
-
-	// Set to no blur
-	glUniform1i(glGetUniformLocation(GprogramID, "uBlurDirection"), -1);
-
-	// Draw the textures
-	glDepthMask(GL_FALSE);
-
-	DrawSquare(GfullscreenTexture);
-
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE);
-	DrawSquare(GpTexture_0);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	glDepthMask(GL_TRUE);
-
-
-
-
-	//Fmod Update
-	//updateFmod();
-	/*
-	static int mainSpectrum = 2;
-
-	//Print the first audio spectrum for both left and right channels
-	if(m_highestSpectrum[mainSpectrum] - m_spectrum[mainSpectrum] > 0.01f)
-		std::cout << mainSpectrum << "@" << m_spectrum[mainSpectrum] << std::endl;
-
-	GLint spectrumLoc = glGetUniformLocation(GprogramID, "Spectrum");
-	if (spectrumLoc != -1)
-	{
-		//glUniform1f(spectrumLoc, m_highestSpectrumLeft[2] + m_highestSpectrumRight[2]);
-		glUniform1f(spectrumLoc, m_highestSpectrum[mainSpectrum]);
-	}
+	PostProcessDraw(0, time, GpTexture_0, 0, PPS_ADDITIVE_BLEND, -1, GfullscreenTexture);
 	
-	GLint spectrumArrayLoc = glGetUniformLocation(GprogramID, "SpectrumArray");
-	if (spectrumArrayLoc != -1)
-	{
-		glUniform1fv(spectrumArrayLoc, SPECTRUM_EXP_2, m_highestSpectrum);
-	}
-	*/
+	//Test with more iterations
+	//HigherIntensityBloom(2, time, GpTexture_2, GpTexture_0, GpTexture_1);
+
+	//DrawFmod();
+
 	 //Triangle
 	/*
 	static GLfloat vVertices[] = 
