@@ -459,46 +459,6 @@ void DrawSquare(GLuint texture)
 	glDisableVertexAttribArray(2);
 }
 
-void DrawSquare(GLuint texture, GLfloat* vTexCoords)
-{
-	static GLfloat vVertices[] =
-	{
-		-1.0f, -1.0f, 0.0f,
-		 1.0f, -1.0f, 0.0f,
-		-1.0f,  1.0f, 0.0f,
-		 1.0f, -1.0f, 0.0f,
-		-1.0f,  1.0f, 0.0f,
-		 1.0f,  1.0f, 0.0f
-	};
-
-	static GLfloat vColors[] = // !! Color for each vertex
-	{
-		1.0f, 1.0f, 1.0f, 1.0f,
-		1.0f, 1.0f, 1.0f, 1.0f,
-		1.0f, 1.0f, 1.0f, 1.0f,
-		1.0f, 1.0f, 1.0f, 1.0f,
-		1.0f, 1.0f, 1.0f, 1.0f,
-		1.0f, 1.0f, 1.0f, 1.0f
-	};
-
-	glBindTexture(GL_TEXTURE_2D, texture);
-
-	// Load the vertex data
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, vColors);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, vTexCoords);
-
-	glEnableVertexAttribArray(0);
-	glEnableVertexAttribArray(1);
-	glEnableVertexAttribArray(2);
-
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-
-	glDisableVertexAttribArray(0);
-	glDisableVertexAttribArray(1);
-	glDisableVertexAttribArray(2);
-}
-
 //Normal Cube (Single-textured)
 void DrawCube(GLuint texture)
 {
@@ -750,47 +710,47 @@ void DrawCubemap(GLuint texture)
 
 	static GLfloat vTexCoords[] = // !! TexCoord for each vertex
 	{
-		0.25f + 0.25f * 0.0f, 0.333f + 0.333f * 0.0f,
-		0.25f + 0.25f * 1.0f, 0.333f + 0.333f * 0.0f,
-		0.25f + 0.25f * 0.0f, 0.333f + 0.333f * 1.0f,
-		0.25f + 0.25f * 1.0f, 0.333f + 0.333f * 0.0f,
-		0.25f + 0.25f * 0.0f, 0.333f + 0.333f * 1.0f,
-		0.25f + 0.25f * 1.0f, 0.333f + 0.333f * 1.0f,
+		0.25f + 0.25f * 0.0f, 0.3333f,
+		0.25f + 0.25f * 1.0f, 0.3333f,
+		0.25f + 0.25f * 0.0f, 0.6667f,
+		0.25f + 0.25f * 1.0f, 0.3333f,
+		0.25f + 0.25f * 0.0f, 0.6667f,
+		0.25f + 0.25f * 1.0f, 0.6667f,
 
-		0.75f + 0.25f * 1.0f, 0.333f + 0.333f * 0.0f,
-		0.75f + 0.25f * 0.0f, 0.333f + 0.333f * 0.0f,
-		0.75f + 0.25f * 1.0f, 0.333f + 0.333f * 1.0f,
-		0.75f + 0.25f * 0.0f, 0.333f + 0.333f * 0.0f,
-		0.75f + 0.25f * 1.0f, 0.333f + 0.333f * 1.0f,
-		0.75f + 0.25f * 0.0f, 0.333f + 0.333f * 1.0f,
+		0.75f + 0.25f * 1.0f, 0.3333f,
+		0.75f + 0.25f * 0.0f, 0.3333f,
+		0.75f + 0.25f * 1.0f, 0.6667f,
+		0.75f + 0.25f * 0.0f, 0.3333f,
+		0.75f + 0.25f * 1.0f, 0.6667f,
+		0.75f + 0.25f * 0.0f, 0.6667f,
 
-		0.50f + 0.25f * 1.0f, 0.333f + 0.333f * 0.0f,
-		0.50f + 0.25f * 1.0f, 0.333f + 0.333f * 1.0f,
-		0.50f + 0.25f * 0.0f, 0.333f + 0.333f * 0.0f,
-		0.50f + 0.25f * 1.0f, 0.333f + 0.333f * 1.0f,
-		0.50f + 0.25f * 0.0f, 0.333f + 0.333f * 0.0f,
-		0.50f + 0.25f * 0.0f, 0.333f + 0.333f * 1.0f,
+		0.50f + 0.25f * 1.0f, 0.3333f,
+		0.50f + 0.25f * 1.0f, 0.6667f,
+		0.50f + 0.25f * 0.0f, 0.3333f,
+		0.50f + 0.25f * 1.0f, 0.6667f,
+		0.50f + 0.25f * 0.0f, 0.3333f,
+		0.50f + 0.25f * 0.0f, 0.6667f,
 
-		0.00f + 0.25f * 0.0f, 0.333f + 0.333f * 0.0f,
-		0.00f + 0.25f * 0.0f, 0.333f + 0.333f * 1.0f,
-		0.00f + 0.25f * 1.0f, 0.333f + 0.333f * 0.0f,
-		0.00f + 0.25f * 0.0f, 0.333f + 0.333f * 1.0f,
-		0.00f + 0.25f * 1.0f, 0.333f + 0.333f * 0.0f,
-		0.00f + 0.25f * 1.0f, 0.333f + 0.333f * 1.0f,
+		0.00f + 0.25f * 0.0f, 0.3333f,
+		0.00f + 0.25f * 0.0f, 0.6667f,
+		0.00f + 0.25f * 1.0f, 0.3333f,
+		0.00f + 0.25f * 0.0f, 0.6667f,
+		0.00f + 0.25f * 1.0f, 0.3333f,
+		0.00f + 0.25f * 1.0f, 0.6667f,
 
-		0.25f + 0.25f * 0.0f, 0.666f + 0.333f * 1.0f,
-		0.25f + 0.25f * 0.0f, 0.666f + 0.333f * 0.0f,
-		0.25f + 0.25f * 1.0f, 0.666f + 0.333f * 1.0f,
-		0.25f + 0.25f * 0.0f, 0.666f + 0.333f * 0.0f,
-		0.25f + 0.25f * 1.0f, 0.666f + 0.333f * 1.0f,
-		0.25f + 0.25f * 1.0f, 0.666f + 0.333f * 0.0f,
+		0.25f + 0.25f * 0.0f, 1.0000f,
+		0.25f + 0.25f * 0.0f, 0.6667f,
+		0.25f + 0.25f * 1.0f, 1.0000f,
+		0.25f + 0.25f * 0.0f, 0.6667f,
+		0.25f + 0.25f * 1.0f, 1.0000f,
+		0.25f + 0.25f * 1.0f, 0.6667f,
 
-		0.25f + 0.25f * 0.0f, 0.000f + 0.333f * 0.0f,
-		0.25f + 0.25f * 0.0f, 0.000f + 0.333f * 1.0f,
-		0.25f + 0.25f * 1.0f, 0.000f + 0.333f * 0.0f,
-		0.25f + 0.25f * 0.0f, 0.000f + 0.333f * 1.0f,
-		0.25f + 0.25f * 1.0f, 0.000f + 0.333f * 0.0f,
-		0.25f + 0.25f * 1.0f, 0.000f + 0.333f * 1.0f
+		0.25f + 0.25f * 0.0f, 0.0000f,
+		0.25f + 0.25f * 0.0f, 0.3333f,
+		0.25f + 0.25f * 1.0f, 0.0000f,
+		0.25f + 0.25f * 0.0f, 0.3333f,
+		0.25f + 0.25f * 1.0f, 0.0000f,
+		0.25f + 0.25f * 1.0f, 0.3333f
 	};
 
 	glBindTexture(GL_TEXTURE_2D, texture);
@@ -1024,14 +984,15 @@ void Draw(void)
 	PostProcessDraw(Gframebuffer, time, 0, GfullscreenTexture, PPS_RENDER_SCENE, -1);
 
 	//==================================================
-	// 2nd pass - Render entire screen as a texture
+	// 2nd pass - Render entire screen without non-glowing objects
 	//==================================================
-	PostProcessDraw(Gframebuffer, time, 0, GpTexture_2, PPS_RENDER_GLOWED, -1);
+	//PostProcessDraw(Gframebuffer, time, 0, GpTexture_2, PPS_RENDER_GLOWED, -1);
 	
 	//==================================================
 	// 3rd Pass - Run High Pass Filter on the texture
 	//==================================================
-	PostProcessDraw(Gframebuffer, time, GpTexture_2, GpTexture_0, PPS_HIGH_PASS, -1);
+	//PostProcessDraw(Gframebuffer, time, GpTexture_2, GpTexture_0, PPS_HIGH_PASS, -1);
+	PostProcessDraw(Gframebuffer, time, GfullscreenTexture, GpTexture_0, PPS_HIGH_PASS, -1);
 
 	//==================================================
 	// 4th Pass - Blur the texture horizontally
